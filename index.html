@@ -6,17 +6,20 @@
 <title>Quiz Champions - Juego Multijugador</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 <style>
 :root {
-    --primary-color: #6c5ce7;
-    --secondary-color: #fd79a8;
-    --accent-color: #fdcb6e;
-    --success-color: #55efc4;
-    --danger-color: #ff7675;
-    --dark-color: #2d3436;
-    --light-color: #dfe6e9;
-    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --card-bg: rgba(255, 255, 255, 0.9);
+    --primary: #6c5ce7;
+    --secondary: #fd79a8;
+    --accent: #fdcb6e;
+    --success: #55efc4;
+    --danger: #ff7675;
+    --dark: #2d3436;
+    --light: #dfe6e9;
+    --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --card: rgba(255, 255, 255, 0.9);
 }
 
 * {
@@ -27,14 +30,92 @@
 
 body {
     font-family: 'Fredoka', sans-serif;
-    background: var(--bg-gradient);
-    color: var(--dark-color);
+    background: var(--bg);
+    color: var(--dark);
     min-height: 100vh;
     overflow-x: hidden;
-    position: relative;
 }
 
-/* Animated background elements */
+/* Indicador de conexión */
+.connection-indicator {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+}
+
+.connection-indicator.connected {
+    background: rgba(85, 239, 196, 0.9);
+    color: var(--dark);
+}
+
+.connection-indicator.disconnected {
+    background: rgba(255, 118, 117, 0.9);
+    color: white;
+}
+
+.connection-indicator.syncing {
+    background: rgba(253, 203, 110, 0.9);
+    color: var(--dark);
+}
+
+/* Animaciones base */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+@keyframes shine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+@keyframes move {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; border-radius: 0; }
+    100% { transform: translateY(-1000px) rotate(720deg); opacity: 0; border-radius: 50%; }
+}
+
+@keyframes particleFall {
+    0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+@keyframes progressShrink {
+    0% { width: 100%; }
+    100% { width: 0%; }
+}
+
+@keyframes soundWave {
+    0% { height: 10px; }
+    100% { height: 20px; }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Fondo animado */
 .bg-animation {
     position: fixed;
     width: 100%;
@@ -55,101 +136,23 @@ body {
     bottom: -150px;
 }
 
-.bg-animation span:nth-child(1) {
-    left: 25%;
-    width: 80px;
-    height: 80px;
-    animation-delay: 0s;
-}
+.bg-animation span:nth-child(1) { left: 25%; width: 80px; height: 80px; animation-delay: 0s; }
+.bg-animation span:nth-child(2) { left: 10%; width: 20px; height: 20px; animation-delay: 2s; animation-duration: 12s; }
+.bg-animation span:nth-child(3) { left: 70%; width: 20px; height: 20px; animation-delay: 4s; }
+.bg-animation span:nth-child(4) { left: 40%; width: 60px; height: 60px; animation-delay: 0s; animation-duration: 18s; }
+.bg-animation span:nth-child(5) { left: 65%; width: 20px; height: 20px; animation-delay: 0s; }
+.bg-animation span:nth-child(6) { left: 75%; width: 110px; height: 110px; animation-delay: 3s; }
+.bg-animation span:nth-child(7) { left: 35%; width: 150px; height: 150px; animation-delay: 7s; }
+.bg-animation span:nth-child(8) { left: 50%; width: 25px; height: 25px; animation-delay: 15s; animation-duration: 45s; }
+.bg-animation span:nth-child(9) { left: 20%; width: 15px; height: 15px; animation-delay: 2s; animation-duration: 35s; }
+.bg-animation span:nth-child(10) { left: 85%; width: 150px; height: 150px; animation-delay: 0s; animation-duration: 11s; }
 
-.bg-animation span:nth-child(2) {
-    left: 10%;
-    width: 20px;
-    height: 20px;
-    animation-delay: 2s;
-    animation-duration: 12s;
-}
-
-.bg-animation span:nth-child(3) {
-    left: 70%;
-    width: 20px;
-    height: 20px;
-    animation-delay: 4s;
-}
-
-.bg-animation span:nth-child(4) {
-    left: 40%;
-    width: 60px;
-    height: 60px;
-    animation-delay: 0s;
-    animation-duration: 18s;
-}
-
-.bg-animation span:nth-child(5) {
-    left: 65%;
-    width: 20px;
-    height: 20px;
-    animation-delay: 0s;
-}
-
-.bg-animation span:nth-child(6) {
-    left: 75%;
-    width: 110px;
-    height: 110px;
-    animation-delay: 3s;
-}
-
-.bg-animation span:nth-child(7) {
-    left: 35%;
-    width: 150px;
-    height: 150px;
-    animation-delay: 7s;
-}
-
-.bg-animation span:nth-child(8) {
-    left: 50%;
-    width: 25px;
-    height: 25px;
-    animation-delay: 15s;
-    animation-duration: 45s;
-}
-
-.bg-animation span:nth-child(9) {
-    left: 20%;
-    width: 15px;
-    height: 15px;
-    animation-delay: 2s;
-    animation-duration: 35s;
-}
-
-.bg-animation span:nth-child(10) {
-    left: 85%;
-    width: 150px;
-    height: 150px;
-    animation-delay: 0s;
-    animation-duration: 11s;
-}
-
-@keyframes move {
-    0% {
-        transform: translateY(0) rotate(0deg);
-        opacity: 1;
-        border-radius: 0;
-    }
-    100% {
-        transform: translateY(-1000px) rotate(720deg);
-        opacity: 0;
-        border-radius: 50%;
-    }
-}
-
+/* Header */
 header {
     background: rgba(255, 255, 255, 0.25);
     backdrop-filter: blur(10px);
     padding: 20px;
     text-align: center;
-    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
     position: relative;
     overflow: hidden;
 }
@@ -165,76 +168,50 @@ header::before {
     animation: shine 3s infinite;
 }
 
-@keyframes shine {
-    0% { left: -100%; }
-    100% { left: 100%; }
-}
-
 h1 {
     font-size: 2.5rem;
-    margin: 0;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
     font-weight: 700;
-    letter-spacing: 1px;
 }
 
 header p {
     font-size: 1.2rem;
-    color: var(--dark-color);
+    color: var(--dark);
     margin-top: 10px;
-    font-weight: 500;
+}
+
+.admin-btn, .sound-toggle {
+    position: absolute;
+    top: 20px;
+    padding: 10px 20px;
+    border-radius: 30px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    transition: all 0.3s;
 }
 
 .admin-btn {
-    position: absolute;
-    top: 20px;
     right: 20px;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
     color: white;
-    padding: 10px 20px;
-    border-radius: 30px;
-    border: none;
-    cursor: pointer;
-    font-family: 'Fredoka', sans-serif;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.admin-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 .sound-toggle {
-    position: absolute;
-    top: 20px;
     left: 20px;
-    background: linear-gradient(90deg, var(--accent-color), #f39c12);
+    background: linear-gradient(90deg, var(--accent), #f39c12);
     color: white;
-    padding: 10px 20px;
-    border-radius: 30px;
-    border: none;
-    cursor: pointer;
-    font-family: 'Fredoka', sans-serif;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.sound-toggle:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
 
 .sound-toggle.muted {
-    background: linear-gradient(90deg, var(--light-color), var(--dark-color));
+    background: linear-gradient(90deg, var(--light), var(--dark));
 }
 
+/* Contenedor principal */
 .container {
     display: flex;
     max-width: 1200px;
@@ -244,13 +221,10 @@ header p {
 }
 
 .left-panel, .right-panel {
-    background: var(--card-bg);
+    background: var(--card);
     border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255, 255, 255, 0.18);
     padding: 25px;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s;
 }
 
 .left-panel {
@@ -267,6 +241,7 @@ header p {
     transform: translateY(-5px);
 }
 
+/* Controles */
 #controls {
     display: flex;
     margin-bottom: 20px;
@@ -276,18 +251,10 @@ header p {
 #new-player {
     flex: 1;
     padding: 12px 15px;
-    border: 2px solid var(--primary-color);
+    border: 2px solid var(--primary);
     border-radius: 30px;
     font-family: 'Fredoka', sans-serif;
-    font-size: 1rem;
-    transition: all 0.3s ease;
     background: rgba(255, 255, 255, 0.7);
-}
-
-#new-player:focus {
-    outline: none;
-    border-color: var(--secondary-color);
-    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
 }
 
 button {
@@ -297,60 +264,38 @@ button {
     cursor: pointer;
     font-family: 'Fredoka', sans-serif;
     font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
 }
 
 button:hover {
     transform: translateY(-3px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-}
-
-button:active {
-    transform: translateY(1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 #add-player-btn {
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
     color: white;
 }
 
-/* Countdown Styles */
+/* Jugador actual */
 #current-player {
     font-size: 2rem;
     font-weight: 600;
     margin-bottom: 20px;
     padding: 20px;
-    background: linear-gradient(90deg, var(--accent-color), var(--success-color));
+    background: linear-gradient(90deg, var(--accent), var(--success));
     border-radius: 15px;
     color: white;
     text-align: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     min-height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: playerTurnPulse 2s ease-in-out;
+    animation: pulse 2s ease-in-out;
 }
 
-@keyframes playerTurnPulse {
-    0% {
-        transform: scale(0.8);
-        opacity: 0;
-    }
-    50% {
-        transform: scale(1.1);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
+/* Temporizador */
 #countdown-container {
-    display: flex;
+    display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -361,35 +306,18 @@ button:active {
 .countdown-number {
     font-size: 8rem;
     font-weight: 700;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: 0 0 30px rgba(108, 92, 231, 0.5);
-    animation: countdownPulse 1s ease-in-out;
+    animation: pulse 1s ease-in-out;
     margin-bottom: 20px;
-}
-
-@keyframes countdownPulse {
-    0% {
-        transform: scale(0.5);
-        opacity: 0;
-    }
-    50% {
-        transform: scale(1.3);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
 }
 
 .countdown-text {
     font-size: 1.5rem;
-    color: var(--primary-color);
+    color: var(--primary);
     font-weight: 600;
-    animation: fadeIn 0.5s ease-in-out;
 }
 
 .countdown-progress {
@@ -403,29 +331,19 @@ button:active {
 
 .countdown-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
     border-radius: 4px;
     animation: progressShrink 2s linear;
 }
 
-@keyframes progressShrink {
-    0% {
-        width: 100%;
-    }
-    100% {
-        width: 0%;
-    }
-}
-
+/* Pregunta y opciones */
 #question-text {
     font-size: 1.3rem;
     margin-bottom: 25px;
     padding: 20px;
     background: rgba(255, 255, 255, 0.7);
     border-radius: 15px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border-left: 5px solid var(--primary-color);
-    animation: fadeIn 0.5s ease-in-out;
+    border-left: 5px solid var(--primary);
 }
 
 #options {
@@ -444,8 +362,7 @@ button:active {
     font-weight: 500;
     text-align: center;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
     position: relative;
     overflow: hidden;
 }
@@ -467,29 +384,16 @@ button:active {
 
 .option:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
 }
 
 .option.correct {
-    background: linear-gradient(135deg, var(--success-color), #00b894);
+    background: linear-gradient(135deg, var(--success), #00b894);
     animation: pulse 0.5s;
 }
 
 .option.incorrect {
-    background: linear-gradient(135deg, var(--danger-color), #d63031);
+    background: linear-gradient(135deg, var(--danger), #d63031);
     animation: shake 0.5s;
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-    20%, 40%, 60%, 80% { transform: translateX(5px); }
 }
 
 #result {
@@ -506,46 +410,40 @@ button:active {
 }
 
 #result.correct {
-    background: linear-gradient(135deg, var(--success-color), #00b894);
+    background: linear-gradient(135deg, var(--success), #00b894);
     color: white;
-    animation: fadeIn 0.5s ease-in-out;
 }
 
 #result.incorrect {
-    background: linear-gradient(135deg, var(--danger-color), #d63031);
+    background: linear-gradient(135deg, var(--danger), #d63031);
     color: white;
-    animation: fadeIn 0.5s ease-in-out;
 }
 
+/* Tabla de jugadores */
 .right-panel h3 {
     font-size: 1.5rem;
     margin-bottom: 20px;
-    color: var(--primary-color);
+    color: var(--primary);
     text-align: center;
     padding-bottom: 10px;
-    border-bottom: 2px solid var(--light-color);
+    border-bottom: 2px solid var(--light);
 }
 
 #players-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 10px;
 }
 
 #players-table th, #players-table td {
     padding: 12px;
     text-align: center;
-    border-bottom: 1px solid var(--light-color);
+    border-bottom: 1px solid var(--light);
 }
 
 #players-table th {
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
     color: white;
     font-weight: 600;
-}
-
-#players-table tr {
-    transition: all 0.3s ease;
 }
 
 #players-table tr:hover {
@@ -554,167 +452,24 @@ button:active {
 
 .life {
     font-size: 1.5rem;
-    transition: all 0.3s ease;
+    transition: all 0.3s;
 }
 
 .life.lost {
-    color: var(--danger-color);
-    animation: heartbeat 0.5s;
-}
-
-@keyframes heartbeat {
-    0% { transform: scale(1); }
-    25% { transform: scale(1.3); }
-    50% { transform: scale(1); }
-    75% { transform: scale(1.3); }
-    100% { transform: scale(1); }
+    color: var(--danger);
+    animation: pulse 0.5s;
 }
 
 .remove-btn {
-    background: var(--danger-color);
+    background: var(--danger);
     color: white;
     padding: 5px 10px;
     border-radius: 20px;
     font-size: 0.9rem;
 }
 
-/* Elimination Animation */
-#elimination-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 5000;
-    overflow: hidden;
-}
-
-.elimination-content {
-    text-align: center;
-    animation: eliminationZoom 2s ease-out;
-    position: relative;
-    z-index: 10;
-}
-
-@keyframes eliminationZoom {
-    0% {
-        transform: scale(0);
-        opacity: 0;
-    }
-    50% {
-        transform: scale(1.2);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-.elimination-photo {
-    width: 400px;
-    height: 400px;
-    border-radius: 50%;
-    border: 8px solid var(--danger-color);
-    box-shadow: 0 0 50px rgba(255, 118, 117, 0.8);
-    object-fit: cover;
-    margin-bottom: 30px;
-    animation: photoGlow 2s infinite alternate;
-}
-
-@keyframes photoGlow {
-    0% {
-        box-shadow: 0 0 50px rgba(255, 118, 117, 0.8);
-    }
-    100% {
-        box-shadow: 0 0 80px rgba(255, 118, 117, 1);
-    }
-}
-
-.elimination-name {
-    font-size: 4rem;
-    font-weight: 700;
-    color: white;
-    text-shadow: 0 0 20px rgba(255, 118, 117, 0.8);
-    margin-bottom: 20px;
-    animation: nameFlash 1s infinite alternate;
-}
-
-@keyframes nameFlash {
-    0% {
-        opacity: 0.8;
-        transform: scale(1);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1.05);
-    }
-}
-
-.elimination-message {
-    font-size: 2.5rem;
-    font-weight: 600;
-    color: var(--danger-color);
-    text-shadow: 0 0 15px rgba(255, 118, 117, 0.6);
-    margin-bottom: 30px;
-}
-
-.elimination-stats {
-    font-size: 1.5rem;
-    color: white;
-    margin-bottom: 40px;
-}
-
-.continue-btn {
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-    color: white;
-    padding: 20px 40px;
-    font-size: 1.5rem;
-    border-radius: 50px;
-    animation: continuePulse 1.5s infinite;
-}
-
-@keyframes continuePulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
-.elimination-particles {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    pointer-events: none;
-}
-
-.particle {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    background: var(--danger-color);
-    border-radius: 50%;
-    animation: particleFall 3s linear infinite;
-}
-
-@keyframes particleFall {
-    0% {
-        transform: translateY(-100vh) rotate(0deg);
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(100vh) rotate(720deg);
-        opacity: 0;
-    }
-}
-
-/* Winner Animation */
-#winner-container {
+/* Animaciones */
+.elimination-container, .winner-container {
     position: fixed;
     top: 0;
     left: 0;
@@ -724,72 +479,58 @@ button:active {
     display: none;
     justify-content: center;
     align-items: center;
-    z-index: 6000;
+    z-index: 5000;
     overflow: hidden;
 }
 
-.winner-content {
+.elimination-content, .winner-content {
     text-align: center;
-    animation: winnerZoom 2s ease-out;
+    animation: fadeIn 1s ease-out;
     position: relative;
     z-index: 10;
 }
 
-@keyframes winnerZoom {
-    0% {
-        transform: scale(0) rotate(0deg);
-        opacity: 0;
-    }
-    50% {
-        transform: scale(1.2) rotate(180deg);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(1) rotate(360deg);
-        opacity: 1;
-    }
-}
-
-.winner-photo {
+.elimination-photo, .winner-photo {
     width: 400px;
     height: 400px;
     border-radius: 50%;
-    border: 8px solid var(--accent-color);
-    box-shadow: 0 0 50px rgba(253, 203, 110, 0.8);
     object-fit: cover;
     margin-bottom: 30px;
-    animation: winnerPhotoGlow 2s infinite alternate;
 }
 
-@keyframes winnerPhotoGlow {
-    0% {
-        box-shadow: 0 0 50px rgba(253, 203, 110, 0.8);
-        transform: scale(1);
-    }
-    100% {
-        box-shadow: 0 0 80px rgba(253, 203, 110, 1);
-        transform: scale(1.05);
-    }
+.elimination-photo {
+    border: 8px solid var(--danger);
+    box-shadow: 0 0 50px rgba(255, 118, 117, 0.8);
+}
+
+.winner-photo {
+    border: 8px solid var(--accent);
+    box-shadow: 0 0 50px rgba(253, 203, 110, 0.8);
+}
+
+.elimination-name, .winner-name {
+    font-size: 4rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    animation: pulse 1s infinite alternate;
+}
+
+.elimination-name {
+    color: white;
+    text-shadow: 0 0 20px rgba(255, 118, 117, 0.8);
 }
 
 .winner-name {
-    font-size: 4rem;
-    font-weight: 700;
-    color: var(--accent-color);
+    color: var(--accent);
     text-shadow: 0 0 20px rgba(253, 203, 110, 0.8);
-    margin-bottom: 20px;
-    animation: winnerNameFlash 1s infinite alternate;
 }
 
-@keyframes winnerNameFlash {
-    0% {
-        opacity: 0.8;
-        transform: scale(1);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1.05);
-    }
+.elimination-message {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--danger);
+    text-shadow: 0 0 15px rgba(255, 118, 117, 0.6);
+    margin-bottom: 30px;
 }
 
 .winner-message {
@@ -798,40 +539,33 @@ button:active {
     color: white;
     text-shadow: 0 0 15px rgba(253, 203, 110, 0.6);
     margin-bottom: 30px;
-    animation: messageGlow 1.5s infinite alternate;
 }
 
-@keyframes messageGlow {
-    0% {
-        transform: scale(1);
-    }
-    100% {
-        transform: scale(1.05);
-    }
-}
-
-.winner-stats {
+.elimination-stats, .winner-stats {
     font-size: 1.5rem;
     color: white;
     margin-bottom: 40px;
 }
 
-.play-again-btn {
-    background: linear-gradient(90deg, var(--success-color), #00b894);
-    color: white;
+.continue-btn, .play-again-btn {
     padding: 20px 40px;
     font-size: 1.5rem;
     border-radius: 50px;
-    animation: playAgainPulse 1.5s infinite;
+    animation: pulse 1.5s infinite;
 }
 
-@keyframes playAgainPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+.continue-btn {
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    color: white;
 }
 
-.winner-particles {
+.play-again-btn {
+    background: linear-gradient(90deg, var(--success), #00b894);
+    color: white;
+}
+
+/* Partículas */
+.particles, .winner-particles {
     position: absolute;
     width: 100%;
     height: 100%;
@@ -840,48 +574,24 @@ button:active {
     pointer-events: none;
 }
 
-.winner-particle {
+.particle, .winner-particle {
     position: absolute;
-    width: 15px;
-    height: 15px;
     border-radius: 50%;
-    animation: winnerParticleFall 3s linear infinite;
+    animation: particleFall 3s linear infinite;
 }
 
-@keyframes winnerParticleFall {
-    0% {
-        transform: translateY(-100vh) rotate(0deg);
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(100vh) rotate(720deg);
-        opacity: 0;
-    }
-}
-
-.confetti {
-    position: absolute;
+.particle {
     width: 10px;
     height: 10px;
-    background: var(--accent-color);
-    animation: confetti-fall 3s linear infinite;
+    background: var(--danger);
 }
 
-@keyframes confetti-fall {
-    0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
-    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+.winner-particle {
+    width: 15px;
+    height: 15px;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.fade {
-    animation: fadeIn 0.5s ease-in-out;
-}
-
-/* Sound Indicator */
+/* Indicador de sonido */
 .sound-indicator {
     position: fixed;
     bottom: 20px;
@@ -894,47 +604,23 @@ button:active {
     align-items: center;
     gap: 10px;
     z-index: 10000;
-    animation: soundSlideIn 0.3s ease-out;
-}
-
-@keyframes soundSlideIn {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
+    animation: fadeIn 0.3s ease-out;
 }
 
 .sound-wave {
     width: 3px;
     height: 20px;
-    background: var(--accent-color);
+    background: var(--accent);
     border-radius: 3px;
     animation: soundWave 0.5s infinite alternate;
 }
 
-.sound-wave:nth-child(2) {
-    animation-delay: 0.1s;
-}
+.sound-wave:nth-child(2) { animation-delay: 0.1s; }
+.sound-wave:nth-child(3) { animation-delay: 0.2s; }
+.sound-wave:nth-child(4) { animation-delay: 0.3s; }
 
-.sound-wave:nth-child(3) {
-    animation-delay: 0.2s;
-}
-
-.sound-wave:nth-child(4) {
-    animation-delay: 0.3s;
-}
-
-@keyframes soundWave {
-    0% { height: 10px; }
-    100% { height: 20px; }
-}
-
-/* Login Modal */
-#login-container {
+/* Modal de login */
+.modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -947,20 +633,20 @@ button:active {
     z-index: 2000;
 }
 
-#login-modal {
+.modal-content {
     background: white;
     border-radius: 20px;
     padding: 40px;
     max-width: 400px;
     width: 90%;
-    animation: bounceIn 0.5s;
+    animation: fadeIn 0.5s;
 }
 
 #login-modal h2 {
     font-size: 2rem;
     margin-bottom: 30px;
     text-align: center;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -970,23 +656,15 @@ button:active {
     width: 100%;
     padding: 15px;
     margin-bottom: 20px;
-    border: 2px solid var(--primary-color);
+    border: 2px solid var(--primary);
     border-radius: 30px;
     font-family: 'Fredoka', sans-serif;
-    font-size: 1rem;
-    transition: all 0.3s ease;
     background: rgba(255, 255, 255, 0.7);
-}
-
-.login-input:focus {
-    outline: none;
-    border-color: var(--secondary-color);
-    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
 }
 
 #login-btn {
     width: 100%;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
     color: white;
     padding: 15px;
     font-size: 1.1rem;
@@ -995,39 +673,27 @@ button:active {
 
 #cancel-login-btn {
     width: 100%;
-    background: var(--light-color);
-    color: var(--dark-color);
+    background: var(--light);
+    color: var(--dark);
     padding: 15px;
     font-size: 1.1rem;
 }
 
-/* Admin Panel */
-#admin-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    display: none;
-    z-index: 3000;
-    overflow-y: auto;
-}
-
+/* Panel de administración */
 #admin-panel {
     background: white;
     border-radius: 20px;
     padding: 40px;
     max-width: 900px;
     margin: 50px auto;
-    animation: bounceIn 0.5s;
+    animation: fadeIn 0.5s;
 }
 
 #admin-panel h2 {
     font-size: 2.5rem;
     margin-bottom: 30px;
     text-align: center;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -1036,7 +702,7 @@ button:active {
 .admin-tabs {
     display: flex;
     margin-bottom: 30px;
-    border-bottom: 2px solid var(--light-color);
+    border-bottom: 2px solid var(--light);
     flex-wrap: wrap;
 }
 
@@ -1050,14 +716,14 @@ button:active {
     font-family: 'Fredoka', sans-serif;
     font-size: 1rem;
     font-weight: 600;
-    color: var(--dark-color);
+    color: var(--dark);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s;
 }
 
 .tab-btn.active {
-    border-bottom-color: var(--primary-color);
-    color: var(--primary-color);
+    border-bottom-color: var(--primary);
+    color: var(--primary);
 }
 
 .tab-content {
@@ -1066,7 +732,7 @@ button:active {
 
 .tab-content.active {
     display: block;
-    animation: fadeIn 0.5s ease-in-out;
+    animation: fadeIn 0.5s;
 }
 
 .question-form {
@@ -1077,17 +743,9 @@ button:active {
 
 .form-input {
     padding: 15px;
-    border: 2px solid var(--primary-color);
+    border: 2px solid var(--primary);
     border-radius: 15px;
     font-family: 'Fredoka', sans-serif;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: var(--secondary-color);
-    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
 }
 
 .options-input {
@@ -1098,15 +756,14 @@ button:active {
 
 .correct-select {
     padding: 15px;
-    border: 2px solid var(--primary-color);
+    border: 2px solid var(--primary);
     border-radius: 15px;
     font-family: 'Fredoka', sans-serif;
-    font-size: 1rem;
     background: white;
 }
 
 #save-question-btn {
-    background: linear-gradient(90deg, var(--success-color), #00b894);
+    background: linear-gradient(90deg, var(--success), #00b894);
     color: white;
     padding: 15px;
     font-size: 1.1rem;
@@ -1130,22 +787,13 @@ button:active {
     width: 100%;
     height: 100%;
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    animation: ai-shine 2s infinite;
-}
-
-@keyframes ai-shine {
-    0% { left: -100%; }
-    100% { left: 100%; }
-}
-
-.ai-generating {
-    animation: pulse 1s infinite;
+    animation: shine 2s infinite;
 }
 
 .questions-list {
     max-height: 400px;
     overflow-y: auto;
-    border: 2px solid var(--light-color);
+    border: 2px solid var(--light);
     border-radius: 15px;
     padding: 20px;
 }
@@ -1159,7 +807,7 @@ button:active {
 }
 
 .question-item h4 {
-    color: var(--primary-color);
+    color: var(--primary);
     margin-bottom: 10px;
     font-size: 1.2rem;
 }
@@ -1174,7 +822,7 @@ button:active {
     content: '✓';
     position: absolute;
     left: 0;
-    color: var(--success-color);
+    color: var(--success);
     font-weight: bold;
 }
 
@@ -1182,7 +830,7 @@ button:active {
     position: absolute;
     top: 20px;
     right: 20px;
-    background: var(--danger-color);
+    background: var(--danger);
     color: white;
     padding: 8px 15px;
     border-radius: 20px;
@@ -1193,13 +841,13 @@ button:active {
     position: absolute;
     top: 20px;
     right: 20px;
-    background: var(--danger-color);
+    background: var(--danger);
     color: white;
     padding: 10px 20px;
     border-radius: 30px;
 }
 
-/* Player Photos Section */
+/* Fotos de jugadores */
 .photos-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -1212,7 +860,7 @@ button:active {
     border-radius: 15px;
     padding: 15px;
     text-align: center;
-    transition: all 0.3s ease;
+    transition: all 0.3s;
 }
 
 .photo-card:hover {
@@ -1226,44 +874,48 @@ button:active {
     border-radius: 50%;
     object-fit: cover;
     margin-bottom: 10px;
-    border: 3px solid var(--primary-color);
+    border: 3px solid var(--primary);
 }
 
 .player-name-input {
     width: 100%;
     padding: 10px;
     margin-bottom: 10px;
-    border: 2px solid var(--primary-color);
+    border: 2px solid var(--primary);
     border-radius: 10px;
     font-family: 'Fredoka', sans-serif;
 }
 
-.photo-upload-btn {
+.photo-upload-btn, .delete-photo-btn {
     width: 100%;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-    color: white;
     padding: 10px;
-    font-size: 0.9rem;
+    border-radius: 10px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.photo-upload-btn {
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    color: white;
     margin-bottom: 10px;
 }
 
 .delete-photo-btn {
-    width: 100%;
-    background: var(--danger-color);
+    background: var(--danger);
     color: white;
-    padding: 8px;
     font-size: 0.8rem;
-    border-radius: 10px;
 }
 
 .add-photo-card {
     background: rgba(108, 92, 231, 0.05);
-    border: 2px dashed var(--primary-color);
+    border: 2px dashed var(--primary);
     border-radius: 15px;
     padding: 30px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1278,15 +930,11 @@ button:active {
 
 .add-photo-card i {
     font-size: 3rem;
-    color: var(--primary-color);
+    color: var(--primary);
     margin-bottom: 10px;
 }
 
-#photo-input {
-    display: none;
-}
-
-/* Sound Settings Section */
+/* Configuración de sonido */
 .sound-settings {
     background: rgba(108, 92, 231, 0.05);
     border-radius: 15px;
@@ -1295,7 +943,7 @@ button:active {
 }
 
 .sound-settings h3 {
-    color: var(--primary-color);
+    color: var(--primary);
     margin-bottom: 20px;
     font-size: 1.3rem;
     text-align: center;
@@ -1309,18 +957,19 @@ button:active {
     display: block;
     margin-bottom: 10px;
     font-weight: 600;
-    color: var(--dark-color);
+    color: var(--dark);
 }
 
 .voice-select {
     width: 100%;
     padding: 12px;
-    border: 2px solid var(--primary-color);
+    border: 2px solid var(--primary);
     border-radius: 15px;
     font-family: 'Fredoka', sans-serif;
-    font-size: 1rem;
     background: white;
     margin-bottom: 10px;
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 .voice-option {
@@ -1328,7 +977,7 @@ button:active {
     margin: 5px 0;
     border-radius: 10px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s;
 }
 
 .voice-option:hover {
@@ -1336,48 +985,41 @@ button:active {
 }
 
 .voice-option.selected {
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
     color: white;
 }
 
 .voice-option.comentarista {
-    border-left: 4px solid var(--accent-color);
+    border-left: 4px solid var(--accent);
     font-weight: 600;
 }
 
 .message-input {
     width: 100%;
     padding: 15px;
-    border: 2px solid var(--primary-color);
+    border: 2px solid var(--primary);
     border-radius: 15px;
     font-family: 'Fredoka', sans-serif;
-    font-size: 1rem;
     margin-bottom: 15px;
     min-height: 80px;
     resize: vertical;
 }
 
-.message-input:focus {
-    outline: none;
-    border-color: var(--secondary-color);
-    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-}
-
-.save-sound-btn {
-    background: linear-gradient(90deg, var(--success-color), #00b894);
-    color: white;
-    padding: 15px;
-    font-size: 1.1rem;
-    width: 100%;
-}
-
 .test-sound-btn {
-    background: linear-gradient(90deg, var(--accent-color), #f39c12);
+    width: 100%;
+    background: linear-gradient(90deg, var(--accent), #f39c12);
     color: white;
     padding: 12px;
     font-size: 1rem;
     margin-bottom: 15px;
+}
+
+.save-sound-btn {
     width: 100%;
+    background: linear-gradient(90deg, var(--success), #00b894);
+    color: white;
+    padding: 15px;
+    font-size: 1.1rem;
 }
 
 .sound-preview {
@@ -1386,10 +1028,10 @@ button:active {
     padding: 15px;
     margin-top: 15px;
     text-align: center;
-    color: var(--dark-color);
+    color: var(--dark);
 }
 
-/* AI Loading Animation */
+/* Animación de carga de IA */
 .ai-loading {
     display: inline-block;
     width: 20px;
@@ -1400,11 +1042,7 @@ button:active {
     animation: spin 1s ease-in-out infinite;
 }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* Responsive Design */
+/* Diseño responsivo */
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
@@ -1465,6 +1103,13 @@ button:active {
 </style>
 </head>
 <body>
+<!-- Indicador de conexión -->
+<div class="connection-indicator" id="connection-indicator">
+    <i class="fas fa-wifi"></i>
+    <span id="connection-text">Conectando...</span>
+</div>
+
+<!-- Fondo animado -->
 <div class="bg-animation">
     <span></span>
     <span></span>
@@ -1477,6 +1122,7 @@ button:active {
     <span></span>
 </div>
 
+<!-- Header -->
 <header>
     <h1><i class="fas fa-trophy"></i> Quiz Champions</h1>
     <p>¡Demuestra quién es el campeón del conocimiento!</p>
@@ -1486,6 +1132,7 @@ button:active {
     <button class="admin-btn" onclick="showLogin()"><i class="fas fa-user-shield"></i> Administrador</button>
 </header>
 
+<!-- Contenedor principal -->
 <div class="container">
     <div class="left-panel">
         <div id="controls">
@@ -1495,7 +1142,7 @@ button:active {
 
         <div id="current-player" class="fade"></div>
         
-        <!-- Countdown Container -->
+        <!-- Temporizador -->
         <div id="countdown-container" style="display: none;">
             <div class="countdown-number" id="countdown-number">2</div>
             <div class="countdown-text">¡Prepárate!</div>
@@ -1525,7 +1172,7 @@ button:active {
     </div>
 </div>
 
-<!-- Sound Indicator -->
+<!-- Indicador de sonido -->
 <div class="sound-indicator" id="sound-indicator">
     <div class="sound-wave"></div>
     <div class="sound-wave"></div>
@@ -1534,9 +1181,9 @@ button:active {
     <span>Reproduciendo sonido...</span>
 </div>
 
-<!-- Elimination Animation -->
-<div id="elimination-container">
-    <div class="elimination-particles" id="particles"></div>
+<!-- Animación de eliminación -->
+<div id="elimination-container" class="elimination-container">
+    <div class="particles" id="particles"></div>
     <div class="elimination-content">
         <img id="elimination-photo" class="elimination-photo" src="https://picsum.photos/seed/default/400/400.jpg" alt="Player">
         <div id="elimination-name" class="elimination-name">JUGADOR</div>
@@ -1546,8 +1193,8 @@ button:active {
     </div>
 </div>
 
-<!-- Winner Animation -->
-<div id="winner-container">
+<!-- Animación de victoria -->
+<div id="winner-container" class="winner-container">
     <div class="winner-particles" id="winner-particles"></div>
     <div class="winner-content">
         <img id="winner-photo" class="winner-photo" src="https://picsum.photos/seed/winner/400/400.jpg" alt="Winner">
@@ -1558,9 +1205,9 @@ button:active {
     </div>
 </div>
 
-<!-- Login Modal -->
-<div id="login-container">
-    <div id="login-modal">
+<!-- Modal de login -->
+<div id="login-container" class="modal">
+    <div id="login-modal" class="modal-content">
         <h2><i class="fas fa-lock"></i> Acceso Administrador</h2>
         <input type="text" id="username" class="login-input" placeholder="Usuario">
         <input type="password" id="password" class="login-input" placeholder="Contraseña">
@@ -1569,9 +1216,9 @@ button:active {
     </div>
 </div>
 
-<!-- Admin Panel -->
-<div id="admin-container">
-    <div id="admin-panel">
+<!-- Panel de administración -->
+<div id="admin-container" class="modal">
+    <div id="admin-panel" class="modal-content" style="max-width: 900px;">
         <button id="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
         <h2><i class="fas fa-cog"></i> Panel de Administración</h2>
         
@@ -1610,13 +1257,11 @@ button:active {
         </div>
         
         <div id="view-tab" class="tab-content">
-            <div class="questions-list" id="questions-list">
-                <!-- Las preguntas se cargarán aquí dinámicamente -->
-            </div>
+            <div class="questions-list" id="questions-list"></div>
         </div>
         
         <div id="photos-tab" class="tab-content">
-            <h3 style="text-align: center; margin-bottom: 20px; color: var(--primary-color);">
+            <h3 style="text-align: center; margin-bottom: 20px; color: var(--primary);">
                 <i class="fas fa-camera"></i> Gestión de Fotos de Jugadores
             </h3>
             <div class="photos-grid" id="photos-grid">
@@ -1674,8 +1319,16 @@ button:active {
         </div>
     </div>
 </div>
-
 <script>
+// ====== CONFIGURACIÓN DE FIREBASE ======
+const firebaseConfig = {
+    databaseURL: "https://juego-24648-default-rtdb.firebaseio.com/"
+};
+
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
 // ====== CONFIGURACIÓN INICIAL ======
 let players = [
     {name:"Jonathan", lives:3, correct:0},
@@ -1695,6 +1348,8 @@ let playerPhotos = JSON.parse(localStorage.getItem('playerPhotos')) || {};
 let soundEnabled = true;
 let currentQuestion = null;
 let countdownInterval = null;
+let isOnline = false;
+let syncInProgress = false;
 
 // Cargar configuración de sonido desde localStorage
 let soundSettings = JSON.parse(localStorage.getItem('soundSettings')) || {
@@ -1728,6 +1383,171 @@ let questions = JSON.parse(localStorage.getItem('quizQuestions')) || [
     { q:"¿Qué país ganó la Copa del Mundo 2018?", a:["Brasil","Alemania","Francia","Argentina"], correct:2 }
 ];
 
+// Banco de datos para IA
+const aiQuestionBank = {
+    geography: [
+        { question: "¿Cuál es el país más grande del mundo por superficie?", correct: "Rusia", incorrect: ["Canadá", "China", "Estados Unidos"] },
+        { question: "¿Cuál es el desierto más caliente del mundo?", correct: "Sahara", incorrect: ["Gobi", "Atacama", "Arábigo"] },
+        { question: "¿En qué continente se encuentra Egipto?", correct: "África", incorrect: ["Asia", "Europa", "América"] },
+        { question: "¿Cuál es la montaña más alta del mundo?", correct: "Everest", incorrect: ["K2", "Kangchenjunga", "Lhotse"] },
+        { question: "¿Cuál es el río más largo de Sudamérica?", correct: "Amazonas", incorrect: ["Orinoco", "Paraná", "Magdalena"] }
+    ],
+    history: [
+        { question: "¿En qué año cayó el Imperio Romano?", correct: "476 d.C.", incorrect: ["106 d.C.", "313 d.C.", "79 d.C."] },
+        { question: "¿Quién fue el primer presidente de Estados Unidos?", correct: "George Washington", incorrect: ["Thomas Jefferson", "Benjamin Franklin", "Abraham Lincoln"] },
+        { question: "¿Cuándo terminó la Primera Guerra Mundial?", correct: "1918", incorrect: ["1914", "1916", "1920"] },
+        { question: "¿Qué civilización construyó Machu Picchu?", correct: "Inca", incorrect: ["Azteca", "Maya", "Olmeca"] },
+        { question: "¿Quién inventó la lámpara incandescente?", correct: "Thomas Edison", incorrect: ["Nikola Tesla", "Alexander Graham Bell", "Benjamin Franklin"] }
+    ],
+    science: [
+        { question: "¿Cuántos huesos tiene el cuerpo humano adulto?", correct: "206", incorrect: ["208", "204", "210"] },
+        { question: "¿Cuál es el componente principal del aire?", correct: "Nitrógeno", incorrect: ["Oxígeno", "Dióxido de carbono", "Argón"] },
+        { question: "¿Cuántos planetas hay en el sistema solar?", correct: "8", incorrect: ["7", "9", "10"] },
+        { question: "¿Qué órgano del cuerpo humano produce insulina?", correct: "Páncreas", incorrect: ["Hígado", "Riñón", "Corazón"] },
+        { question: "¿Cuál es la fórmula química del agua?", correct: "H2O", incorrect: ["CO2", "O2", "H2O2"] }
+    ],
+    sports: [
+        { question: "¿Cuántos jugadores tiene un equipo de fútbol en campo?", correct: "11", incorrect: ["9", "10", "12"] },
+        { question: "¿En qué deporte se usa una red de 3.05 metros de altura?", correct: "Baloncesto", incorrect: ["Voleibol", "Tenis", "Bádminton"] },
+        { question: "¿Cada cuántos años se celebran los Juegos Olímpicos?", correct: "4 años", incorrect: ["2 años", "3 años", "5 años"] },
+        { question: "¿Qué país ha ganado más Copas del Mundo de fútbol?", correct: "Brasil", incorrect: ["Alemania", "Argentina", "Italia"] },
+        { question: "¿En qué deporte se compite en el Tour de Francia?", correct: "Ciclismo", incorrect: ["Atletismo", "Natación", "Automovilismo"] }
+    ],
+    technology: [
+        { question: "¿Quién fundó Microsoft?", correct: "Bill Gates", incorrect: ["Steve Jobs", "Mark Zuckerberg", "Larry Page"] },
+        { question: "¿En qué año se creó Facebook?", correct: "2004", incorrect: ["2002", "2005", "2006"] },
+        { question: "¿Qué significa 'WWW' en informática?", correct: "World Wide Web", incorrect: ["World Wide Wait", "Web World Wide", "World Web Wide"] },
+        { question: "¿Cuál fue el primer smartphone de Apple?", correct: "iPhone", incorrect: ["iPod", "iPad", "iMac"] },
+        { question: "¿Qué lenguaje de programación es conocido como 'el lenguaje de la web'?", correct: "JavaScript", incorrect: ["Python", "Java", "C++"] }
+    ],
+    culture: [
+        { question: "¿Quién pintó 'Las Meninas'?", correct: "Diego Velázquez", incorrect: ["Pablo Picasso", "Francisco Goya", "Salvador Dalí"] },
+        { question: "¿Cuántas cuerdas tiene una guitarra estándar?", correct: "6", incorrect: ["4", "5", "7"] },
+        { question: "¿Quién dirigió 'Titanic'?", correct: "James Cameron", incorrect: ["Steven Spielberg", "Martin Scorsese", "Quentin Tarantino"] },
+        { question: "¿En qué año se publicó 'Don Quijote de la Mancha'?", correct: "1605", incorrect: ["1595", "1615", "1585"] },
+        { question: "¿Cuál es el instrumento musical más vendido del mundo?", correct: "Guitarra", incorrect: ["Piano", "Violín", "Batería"] }
+    ]
+};
+
+// ====== FUNCIONES DE FIREBASE ======
+function updateConnectionStatus(connected) {
+    isOnline = connected;
+    const indicator = document.getElementById('connection-indicator');
+    const text = document.getElementById('connection-text');
+    
+    if (connected) {
+        indicator.className = 'connection-indicator connected';
+        text.textContent = 'Conectado - Sincronización en tiempo real activa';
+    } else {
+        indicator.className = 'connection-indicator disconnected';
+        text.textContent = 'Desconectado - Modo offline';
+    }
+}
+
+function syncToFirebase() {
+    if (!isOnline || syncInProgress) return;
+    
+    syncInProgress = true;
+    const indicator = document.getElementById('connection-indicator');
+    indicator.className = 'connection-indicator syncing';
+    document.getElementById('connection-text').textContent = 'Sincronizando...';
+    
+    const gameData = {
+        players: players,
+        currentPlayerIndex: currentPlayerIndex,
+        questions: questions,
+        soundSettings: soundSettings,
+        playerPhotos: playerPhotos,
+        timestamp: Date.now()
+    };
+    
+    database.ref('gameData').set(gameData, (error) => {
+        syncInProgress = false;
+        if (error) {
+            console.error('Error al sincronizar:', error);
+            updateConnectionStatus(false);
+        } else {
+            updateConnectionStatus(true);
+            setTimeout(() => {
+                if (isOnline) {
+                    indicator.className = 'connection-indicator connected';
+                    document.getElementById('connection-text').textContent = 'Conectado - Sincronización en tiempo real activa';
+                }
+            }, 1000);
+        }
+    });
+}
+
+function setupFirebaseListeners() {
+    // Escuchar cambios en la conexión
+    database.ref('.info/connected').on('value', (snapshot) => {
+        updateConnectionStatus(snapshot.val());
+    });
+    
+    // Escuchar cambios en los datos del juego
+    database.ref('gameData').on('value', (snapshot) => {
+        if (snapshot.exists() && isOnline) {
+            const data = snapshot.val();
+            
+            // Solo actualizar si los datos son más recientes
+            if (data.timestamp && (!window.lastSyncTime || data.timestamp > window.lastSyncTime)) {
+                window.lastSyncTime = data.timestamp;
+                
+                // Actualizar datos locales
+                if (data.players) players = data.players;
+                if (data.currentPlayerIndex !== undefined) currentPlayerIndex = data.currentPlayerIndex;
+                if (data.questions) questions = data.questions;
+                if (data.soundSettings) soundSettings = data.soundSettings;
+                if (data.playerPhotos) playerPhotos = data.playerPhotos;
+                
+                // Actualizar UI
+                renderPlayers();
+                
+                // Si hay una pregunta actual, mostrarla
+                if (data.currentQuestion) {
+                    currentQuestion = data.currentQuestion;
+                    showQuestionFromFirebase();
+                }
+            }
+        }
+    });
+}
+
+function showQuestionFromFirebase() {
+    if (!currentQuestion) return;
+    
+    // Ocultar countdown
+    document.getElementById("countdown-container").style.display = "none";
+    
+    // Mostrar pregunta
+    document.getElementById("question-text").textContent = `${currentQuestion.q}`;
+    document.getElementById("question-text").style.display = "block";
+    
+    const optionsDiv = document.getElementById("options");
+    optionsDiv.innerHTML = "";
+    optionsDiv.style.display = "grid";
+    questionAnswered = false;
+    
+    currentQuestion.a.forEach((opt,i)=>{
+        const btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.className="option fade";
+        btn.onclick = () => {
+            if (!questionAnswered) {
+                checkAnswer(i, currentQuestion.correct);
+                questionAnswered = true;
+                // Sincronizar respuesta
+                syncToFirebase();
+            }
+        };
+        optionsDiv.appendChild(btn);
+    });
+    
+    document.getElementById("result").textContent = "";
+    document.getElementById("result").style.display = "flex";
+    document.getElementById("result").className = "fade";
+}
+
 // ====== FUNCIONES DE SONIDO ======
 function toggleSound() {
     soundEnabled = !soundEnabled;
@@ -1744,6 +1564,9 @@ function toggleSound() {
         soundText.textContent = 'Sonido OFF';
         icon.className = 'fas fa-volume-mute';
     }
+    
+    // Sincronizar configuración
+    syncToFirebase();
 }
 
 function showSoundIndicator() {
@@ -1811,172 +1634,6 @@ window.speechSynthesis.onvoiceschanged = function() {
     loadVoices();
 };
 
-// ====== BANCO DE DATOS PARA IA ======
-const aiQuestionBank = {
-    geography: [
-        {
-            question: "¿Cuál es el país más grande del mundo por superficie?",
-            correct: "Rusia",
-            incorrect: ["Canadá", "China", "Estados Unidos"]
-        },
-        {
-            question: "¿Cuál es el desierto más caliente del mundo?",
-            correct: "Sahara",
-            incorrect: ["Gobi", "Atacama", "Arábigo"]
-        },
-        {
-            question: "¿En qué continente se encuentra Egipto?",
-            correct: "África",
-            incorrect: ["Asia", "Europa", "América"]
-        },
-        {
-            question: "¿Cuál es la montaña más alta del mundo?",
-            correct: "Everest",
-            incorrect: ["K2", "Kangchenjunga", "Lhotse"]
-        },
-        {
-            question: "¿Cuál es el río más largo de Sudamérica?",
-            correct: "Amazonas",
-            incorrect: ["Orinoco", "Paraná", "Magdalena"]
-        }
-    ],
-    history: [
-        {
-            question: "¿En qué año cayó el Imperio Romano?",
-            correct: "476 d.C.",
-            incorrect: ["106 d.C.", "313 d.C.", "79 d.C."]
-        },
-        {
-            question: "¿Quién fue el primer presidente de Estados Unidos?",
-            correct: "George Washington",
-            incorrect: ["Thomas Jefferson", "Benjamin Franklin", "Abraham Lincoln"]
-        },
-        {
-            question: "¿Cuándo terminó la Primera Guerra Mundial?",
-            correct: "1918",
-            incorrect: ["1914", "1916", "1920"]
-        },
-        {
-            question: "¿Qué civilización construyó Machu Picchu?",
-            correct: "Inca",
-            incorrect: ["Azteca", "Maya", "Olmeca"]
-        },
-        {
-            question: "¿Quién inventó la lámpara incandescente?",
-            correct: "Thomas Edison",
-            incorrect: ["Nikola Tesla", "Alexander Graham Bell", "Benjamin Franklin"]
-        }
-    ],
-    science: [
-        {
-            question: "¿Cuántos huesos tiene el cuerpo humano adulto?",
-            correct: "206",
-            incorrect: ["208", "204", "210"]
-        },
-        {
-            question: "¿Cuál es el componente principal del aire?",
-            correct: "Nitrógeno",
-            incorrect: ["Oxígeno", "Dióxido de carbono", "Argón"]
-        },
-        {
-            question: "¿Cuántos planetas hay en el sistema solar?",
-            correct: "8",
-            incorrect: ["7", "9", "10"]
-        },
-        {
-            question: "¿Qué órgano del cuerpo humano produce insulina?",
-            correct: "Páncreas",
-            incorrect: ["Hígado", "Riñón", "Corazón"]
-        },
-        {
-            question: "¿Cuál es la fórmula química del agua?",
-            correct: "H2O",
-            incorrect: ["CO2", "O2", "H2O2"]
-        }
-    ],
-    sports: [
-        {
-            question: "¿Cuántos jugadores tiene un equipo de fútbol en campo?",
-            correct: "11",
-            incorrect: ["9", "10", "12"]
-        },
-        {
-            question: "¿En qué deporte se usa una red de 3.05 metros de altura?",
-            correct: "Baloncesto",
-            incorrect: ["Voleibol", "Tenis", "Bádminton"]
-        },
-        {
-            question: "¿Cada cuántos años se celebran los Juegos Olímpicos?",
-            correct: "4 años",
-            incorrect: ["2 años", "3 años", "5 años"]
-        },
-        {
-            question: "¿Qué país ha ganado más Copas del Mundo de fútbol?",
-            correct: "Brasil",
-            incorrect: ["Alemania", "Argentina", "Italia"]
-        },
-        {
-            question: "¿En qué deporte se compite en el Tour de Francia?",
-            correct: "Ciclismo",
-            incorrect: ["Atletismo", "Natación", "Automovilismo"]
-        }
-    ],
-    technology: [
-        {
-            question: "¿Quién fundó Microsoft?",
-            correct: "Bill Gates",
-            incorrect: ["Steve Jobs", "Mark Zuckerberg", "Larry Page"]
-        },
-        {
-            question: "¿En qué año se creó Facebook?",
-            correct: "2004",
-            incorrect: ["2002", "2005", "2006"]
-        },
-        {
-            question: "¿Qué significa 'WWW' en informática?",
-            correct: "World Wide Web",
-            incorrect: ["World Wide Wait", "Web World Wide", "World Web Wide"]
-        },
-        {
-            question: "¿Cuál fue el primer smartphone de Apple?",
-            correct: "iPhone",
-            incorrect: ["iPod", "iPad", "iMac"]
-        },
-        {
-            question: "¿Qué lenguaje de programación es conocido como 'el lenguaje de la web'?",
-            correct: "JavaScript",
-            incorrect: ["Python", "Java", "C++"]
-        }
-    ],
-    culture: [
-        {
-            question: "¿Quién pintó 'Las Meninas'?",
-            correct: "Diego Velázquez",
-            incorrect: ["Pablo Picasso", "Francisco Goya", "Salvador Dalí"]
-        },
-        {
-            question: "¿Cuántas cuerdas tiene una guitarra estándar?",
-            correct: "6",
-            incorrect: ["4", "5", "7"]
-        },
-        {
-            question: "¿Quién dirigió 'Titanic'?",
-            correct: "James Cameron",
-            incorrect: ["Steven Spielberg", "Martin Scorsese", "Quentin Tarantino"]
-        },
-        {
-            question: "¿En qué año se publicó 'Don Quijote de la Mancha'?",
-            correct: "1605",
-            incorrect: ["1595", "1615", "1585"]
-        },
-        {
-            question: "¿Cuál es el instrumento musical más vendido del mundo?",
-            correct: "Guitarra",
-            incorrect: ["Piano", "Violín", "Batería"]
-        }
-    ]
-};
-
 // ====== FUNCIONES DE JUEGO ======
 function renderPlayers(){
     const tbody = document.getElementById("players-body");
@@ -2003,6 +1660,8 @@ function addPlayer(){
         if(players.length === 1) {
             showPlayerTurn();
         }
+        // Sincronizar con Firebase
+        syncToFirebase();
     }
 }
 
@@ -2016,12 +1675,13 @@ function removePlayer(i){
         document.getElementById("options").innerHTML = "";
         document.getElementById("result").textContent = "";
     }
+    // Sincronizar con Firebase
+    syncToFirebase();
 }
 
 function showPlayerTurn() {
-    if(players.length===0){
-        return;
-    }
+    if(players.length===0) return;
+    
     const player = players[currentPlayerIndex];
     
     // Limpiar cualquier countdown anterior
@@ -2070,7 +1730,7 @@ function startCountdown() {
             countdownNumber.textContent = countdown;
             countdownNumber.style.animation = 'none';
             setTimeout(() => {
-                countdownNumber.style.animation = 'countdownPulse 1s ease-in-out';
+                countdownNumber.style.animation = 'pulse 1s ease-in-out';
             }, 10);
         } else {
             clearInterval(countdownInterval);
@@ -2081,9 +1741,7 @@ function startCountdown() {
 }
 
 function showQuestion(){
-    if(players.length===0){
-        return;
-    }
+    if(players.length===0) return;
     
     // Ocultar countdown
     document.getElementById("countdown-container").style.display = "none";
@@ -2091,6 +1749,11 @@ function showQuestion(){
     // Elegir pregunta aleatoria
     const questionIndex = Math.floor(Math.random()*questions.length);
     currentQuestion = questions[questionIndex];
+    
+    // Sincronizar pregunta actual
+    if (isOnline) {
+        database.ref('gameData/currentQuestion').set(currentQuestion);
+    }
     
     // Mostrar pregunta
     document.getElementById("question-text").textContent = `${currentQuestion.q}`;
@@ -2109,6 +1772,8 @@ function showQuestion(){
             if (!questionAnswered) {
                 checkAnswer(i, currentQuestion.correct);
                 questionAnswered = true;
+                // Sincronizar respuesta
+                syncToFirebase();
             }
         };
         optionsDiv.appendChild(btn);
@@ -2181,7 +1846,7 @@ function showEliminationAnimation(player) {
     // Reproducir sonido de eliminación
     speakElimination(player.name);
     
-    // Reproducir sonido de eliminación (simulado con vibración si está disponible)
+    // Vibración si está disponible
     if (navigator.vibrate) {
         navigator.vibrate([200, 100, 200]);
     }
@@ -2231,6 +1896,9 @@ function nextTurn(){
         currentPlayerIndex = (currentPlayerIndex+1) % players.length;
     } while(players[currentPlayerIndex].lives===0);
     showPlayerTurn();
+    
+    // Sincronizar turno
+    syncToFirebase();
 }
 
 function showWinnerAnimation(player) {
@@ -2267,20 +1935,6 @@ function showWinnerAnimation(player) {
     }
 }
 
-function createConfetti() {
-    const confetti = document.createElement('div');
-    confetti.className = 'confetti';
-    confetti.style.left = Math.random() * 100 + '%';
-    confetti.style.backgroundColor = ['#6c5ce7', '#fd79a8', '#fdcb6e', '#55efc4', '#ff7675'][Math.floor(Math.random() * 5)];
-    confetti.style.animationDelay = Math.random() * 3 + 's';
-    confetti.style.animationDuration = Math.random() * 3 + 2 + 's';
-    document.getElementById('winner-container').appendChild(confetti);
-    
-    setTimeout(() => {
-        confetti.remove();
-    }, 5000);
-}
-
 function resetGame() {
     players.forEach(p => {
         p.lives = 3;
@@ -2290,6 +1944,9 @@ function resetGame() {
     document.getElementById("winner-container").style.display = "none";
     renderPlayers();
     showPlayerTurn();
+    
+    // Sincronizar reinicio
+    syncToFirebase();
 }
 
 // ====== FUNCIONES DE LOGIN ======
@@ -2322,7 +1979,7 @@ function logout() {
 }
 
 function showAdminPanel() {
-    document.getElementById("admin-container").style.display = "block";
+    document.getElementById("admin-container").style.display = "flex";
     loadQuestionsList();
     loadPlayerPhotos();
     loadSoundSettings();
@@ -2473,6 +2130,9 @@ function saveQuestion(event) {
     
     showNotification("Pregunta guardada exitosamente", 'success');
     
+    // Sincronizar con Firebase
+    syncToFirebase();
+    
     // Cambiar a la vista de preguntas
     switchTab('view');
 }
@@ -2507,6 +2167,9 @@ function deleteQuestion(index) {
         localStorage.setItem('quizQuestions', JSON.stringify(questions));
         loadQuestionsList();
         showNotification("Pregunta eliminada exitosamente", 'success');
+        
+        // Sincronizar con Firebase
+        syncToFirebase();
     }
 }
 
@@ -2526,6 +2189,9 @@ function handlePhotoUpload(event) {
                 // Recargar grid de fotos
                 loadPlayerPhotos();
                 showNotification(`Foto agregada para ${playerName}`, 'success');
+                
+                // Sincronizar con Firebase
+                syncToFirebase();
             }
         };
         reader.readAsDataURL(file);
@@ -2565,6 +2231,9 @@ function updatePlayerName(oldName, newName) {
         localStorage.setItem('playerPhotos', JSON.stringify(playerPhotos));
         loadPlayerPhotos();
         showNotification("Nombre actualizado", 'success');
+        
+        // Sincronizar con Firebase
+        syncToFirebase();
     }
 }
 
@@ -2574,6 +2243,9 @@ function deletePlayerPhoto(name) {
         localStorage.setItem('playerPhotos', JSON.stringify(playerPhotos));
         loadPlayerPhotos();
         showNotification("Foto eliminada", 'success');
+        
+        // Sincronizar con Firebase
+        syncToFirebase();
     }
 }
 
@@ -2611,73 +2283,138 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// ====== FUNCIONES DE SONIDO (ADICIONALES) ======
+// ====== FUNCIONES DE SONIDO (ADICIONALES) - VERSIÓN CORREGIDA CON MÁS VOCES ======
 function loadVoices() {
-    const voices = window.speechSynthesis.getVoices();
-    const voiceSelect = document.getElementById('voice-select');
+    // Forzar carga de voces
+    let voices = window.speechSynthesis.getVoices();
     
-    if (voiceSelect) {
-        voiceSelect.innerHTML = '';
+    // Si no hay voces, esperar y volver a intentar
+    if (voices.length === 0) {
+        setTimeout(() => {
+            loadVoices();
+        }, 100);
+        return;
+    }
+    
+    const voiceSelect = document.getElementById('voice-select');
+    if (!voiceSelect) return;
+    
+    voiceSelect.innerHTML = '';
+    
+    // Agregar opción por defecto
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Seleccionar voz...';
+    voiceSelect.appendChild(defaultOption);
+    
+    // Filtrar voces en español de forma más amplia
+    const spanishVoices = voices.filter(voice => 
+        voice.lang.includes('es-ES') || 
+        voice.lang.includes('es-MX') || 
+        voice.lang.includes('es-AR') || 
+        voice.lang.includes('es-CO') || 
+        voice.lang.includes('es-CL') || 
+        voice.lang.includes('es-PE') || 
+        voice.lang.includes('es-VE') || 
+        voice.lang.includes('es')
+    );
+    
+    // Filtrar voces en inglés
+    const englishVoices = voices.filter(voice => voice.lang.includes('en'));
+    
+    // Otras voces
+    const otherVoices = voices.filter(voice => 
+        !voice.lang.includes('es') && !voice.lang.includes('en')
+    );
+    
+    // Añadir voces españolas
+    if (spanishVoices.length > 0) {
+        const spanishGroup = document.createElement('optgroup');
+        spanishGroup.label = '🇪🇸 Voces en Español';
         
-        // Agrupar voces por idioma
-        const spanishVoices = voices.filter(voice => voice.lang.includes('es'));
-        const englishVoices = voices.filter(voice => voice.lang.includes('en'));
-        const otherVoices = voices.filter(voice => !voice.lang.includes('es') && !voice.lang.includes('en'));
+        // Añadir voces españolas destacadas
+        const premiumSpanish = spanishVoices.filter(voice => 
+            voice.name.includes('Google') || 
+            voice.name.includes('Microsoft') || 
+            voice.name.includes('Amazon') ||
+            voice.name.includes('Azure')
+        );
         
-        // Añadir voces españolas
-        if (spanishVoices.length > 0) {
-            const spanishGroup = document.createElement('optgroup');
-            spanishGroup.label = '🇪🇸 Voces en Español';
-            
-            spanishVoices.forEach(voice => {
+        // Añadir primero las voces premium
+        premiumSpanish.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.name;
+            option.textContent = `${voice.name} (${voice.lang}) ⭐ PREMIUM`;
+            spanishGroup.appendChild(option);
+        });
+        
+        // Añadir el resto de voces españolas
+        spanishVoices.forEach(voice => {
+            if (!premiumSpanish.includes(voice)) {
                 const option = document.createElement('option');
                 option.value = voice.name;
                 option.textContent = `${voice.name} (${voice.lang})`;
+                
+                // Añadir iconos según características
+                if (voice.name.includes('female') || voice.name.includes('mujer')) {
+                    option.textContent += ' 👩';
+                }
+                if (voice.name.includes('male') || voice.name.includes('hombre')) {
+                    option.textContent += ' 👨';
+                }
                 if (voice.name.includes('comentarista') || voice.name.includes('announcer')) {
                     option.textContent += ' 🎤';
                 }
+                
                 spanishGroup.appendChild(option);
-            });
-            
-            voiceSelect.appendChild(spanishGroup);
-        }
+            }
+        });
         
-        // Añadir voces en inglés
-        if (englishVoices.length > 0) {
-            const englishGroup = document.createElement('optgroup');
-            englishGroup.label = '🇬🇧🇺🇸 English Voices';
-            
-            englishVoices.forEach(voice => {
-                const option = document.createElement('option');
-                option.value = voice.name;
-                option.textContent = `${voice.name} (${voice.lang})`;
-                if (voice.name.includes('comentarista') || voice.name.includes('announcer')) {
-                    option.textContent += ' 🎤';
-                }
-                englishGroup.appendChild(option);
-            });
-            
-            voiceSelect.appendChild(englishGroup);
-        }
+        voiceSelect.appendChild(spanishGroup);
+    }
+    
+    // Añadir voces en inglés
+    if (englishVoices.length > 0) {
+        const englishGroup = document.createElement('optgroup');
+        englishGroup.label = '🇬🇧🇺🇸 English Voices';
         
-        // Añadir otras voces
-        if (otherVoices.length > 0) {
-            const otherGroup = document.createElement('optgroup');
-            otherGroup.label = '🌍 Otras Voces';
-            
-            otherVoices.forEach(voice => {
-                const option = document.createElement('option');
-                option.value = voice.name;
-                option.textContent = `${voice.name} (${voice.lang})`;
-                otherGroup.appendChild(option);
-            });
-            
-            voiceSelect.appendChild(otherGroup);
-        }
+        englishVoices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.name;
+            option.textContent = `${voice.name} (${voice.lang})`;
+            if (voice.name.includes('comentarista') || voice.name.includes('announcer')) {
+                option.textContent += ' 🎤';
+            }
+            englishGroup.appendChild(option);
+        });
         
-        // Seleccionar voz guardada
-        if (soundSettings.selectedVoice) {
-            voiceSelect.value = soundSettings.selectedVoice;
+        voiceSelect.appendChild(englishGroup);
+    }
+    
+    // Añadir otras voces
+    if (otherVoices.length > 0) {
+        const otherGroup = document.createElement('optgroup');
+        otherGroup.label = '🌍 Otras Voces';
+        
+        otherVoices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.name;
+            option.textContent = `${voice.name} (${voice.lang})`;
+            otherGroup.appendChild(option);
+        });
+        
+        voiceSelect.appendChild(otherGroup);
+    }
+    
+    // Seleccionar voz guardada
+    if (soundSettings.selectedVoice) {
+        voiceSelect.value = soundSettings.selectedVoice;
+    } else {
+        // Seleccionar primera voz española por defecto
+        const firstSpanish = spanishVoices[0];
+        if (firstSpanish) {
+            voiceSelect.value = firstSpanish.name;
+            soundSettings.selectedVoice = firstSpanish.name;
         }
     }
 }
@@ -2685,6 +2422,9 @@ function loadVoices() {
 function updateVoiceSelection() {
     const voiceSelect = document.getElementById('voice-select');
     soundSettings.selectedVoice = voiceSelect.value;
+    
+    // Sincronizar configuración
+    syncToFirebase();
 }
 
 function saveSoundSettings() {
@@ -2695,6 +2435,9 @@ function saveSoundSettings() {
     localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
     
     showNotification('Configuración de sonido guardada exitosamente', 'success');
+    
+    // Sincronizar con Firebase
+    syncToFirebase();
 }
 
 function testEliminationSound() {
@@ -2716,8 +2459,18 @@ function testWrongAnswerSound() {
 }
 
 // ====== INICIO ======
-renderPlayers();
-showPlayerTurn();
+document.addEventListener('DOMContentLoaded', function() {
+    renderPlayers();
+    showPlayerTurn();
+    
+    // Configurar Firebase
+    setupFirebaseListeners();
+    
+    // Forzar carga de voces después de un pequeño retraso
+    setTimeout(() => {
+        loadVoices();
+    }, 500);
+});
 </script>
 </body>
 </html>

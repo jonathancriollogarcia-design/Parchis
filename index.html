@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Champions - Juego Multijugador</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {
+    --primary-color: #6c5ce7;
+    --secondary-color: #fd79a8;
+    --accent-color: #fdcb6e;
+    --success-color: #55efc4;
+    --danger-color: #ff7675;
+    --dark-color: #2d3436;
+    --light-color: #dfe6e9;
+    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --card-bg: rgba(255, 255, 255, 0.9);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Fredoka', sans-serif;
+    background: var(--bg-gradient);
+    color: var(--dark-color);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Animated background elements */
+.bg-animation {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.bg-animation span {
+    position: absolute;
+    display: block;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    animation: move 25s linear infinite;
+    bottom: -150px;
+}
+
+.bg-animation span:nth-child(1) {
+    left: 25%;
+    width: 80px;
+    height: 80px;
+    animation-delay: 0s;
+}
+
+.bg-animation span:nth-child(2) {
+    left: 10%;
+    width: 20px;
+    height: 20px;
+    animation-delay: 2s;
+    animation-duration: 12s;
+}
+
+.bg-animation span:nth-child(3) {
+    left: 70%;
+    width: 20px;
+    height: 20px;
+    animation-delay: 4s;
+}
+
+.bg-animation span:nth-child(4) {
+    left: 40%;
+    width: 60px;
+    height: 60px;
+    animation-delay: 0s;
+    animation-duration: 18s;
+}
+
+.bg-animation span:nth-child(5) {
+    left: 65%;
+    width: 20px;
+    height: 20px;
+    animation-delay: 0s;
+}
+
+.bg-animation span:nth-child(6) {
+    left: 75%;
+    width: 110px;
+    height: 110px;
+    animation-delay: 3s;
+}
+
+.bg-animation span:nth-child(7) {
+    left: 35%;
+    width: 150px;
+    height: 150px;
+    animation-delay: 7s;
+}
+
+.bg-animation span:nth-child(8) {
+    left: 50%;
+    width: 25px;
+    height: 25px;
+    animation-delay: 15s;
+    animation-duration: 45s;
+}
+
+.bg-animation span:nth-child(9) {
+    left: 20%;
+    width: 15px;
+    height: 15px;
+    animation-delay: 2s;
+    animation-duration: 35s;
+}
+
+.bg-animation span:nth-child(10) {
+    left: 85%;
+    width: 150px;
+    height: 150px;
+    animation-delay: 0s;
+    animation-duration: 11s;
+}
+
+@keyframes move {
+    0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+        border-radius: 0;
+    }
+    100% {
+        transform: translateY(-1000px) rotate(720deg);
+        opacity: 0;
+        border-radius: 50%;
+    }
+}
+
+header {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    position: relative;
+    overflow: hidden;
+}
+
+header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: shine 3s infinite;
+}
+
+@keyframes shine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+h1 {
+    font-size: 2.5rem;
+    margin: 0;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+header p {
+    font-size: 1.2rem;
+    color: var(--dark-color);
+    margin-top: 10px;
+    font-weight: 500;
+}
+
+.container {
+    display: flex;
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 15px;
+    gap: 30px;
+}
+
+.left-panel, .right-panel {
+    background: var(--card-bg);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 25px;
+    transition: transform 0.3s ease;
+}
+
+.left-panel {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+}
+
+.right-panel {
+    flex: 1;
+}
+
+.left-panel:hover, .right-panel:hover {
+    transform: translateY(-5px);
+}
+
+#controls {
+    display: flex;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+#new-player {
+    flex: 1;
+    padding: 12px 15px;
+    border: 2px solid var(--primary-color);
+    border-radius: 30px;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+#new-player:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
+}
+
+button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+button:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#add-player-btn {
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    color: white;
+}
+
+#current-player {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: linear-gradient(90deg, var(--accent-color), var(--success-color));
+    border-radius: 15px;
+    color: white;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#question-text {
+    font-size: 1.3rem;
+    margin-bottom: 25px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-left: 5px solid var(--primary-color);
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+#options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.option {
+    padding: 15px;
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    color: white;
+    border-radius: 15px;
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.option::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.option:hover::before {
+    left: 100%;
+}
+
+.option:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+}
+
+.option.correct {
+    background: linear-gradient(135deg, var(--success-color), #00b894);
+    animation: pulse 0.5s;
+}
+
+.option.incorrect {
+    background: linear-gradient(135deg, var(--danger-color), #d63031);
+    animation: shake 0.5s;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+#result {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 15px;
+    text-align: center;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#result.correct {
+    background: linear-gradient(135deg, var(--success-color), #00b894);
+    color: white;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+#result.incorrect {
+    background: linear-gradient(135deg, var(--danger-color), #d63031);
+    color: white;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+#next-turn {
+    background: linear-gradient(90deg, var(--accent-color), #f39c12);
+    color: white;
+    font-size: 1.1rem;
+    padding: 15px 30px;
+    margin: 0 auto;
+    display: block;
+}
+
+.right-panel h3 {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+    text-align: center;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--light-color);
+}
+
+#players-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+#players-table th, #players-table td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid var(--light-color);
+}
+
+#players-table th {
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    font-weight: 600;
+}
+
+#players-table tr {
+    transition: all 0.3s ease;
+}
+
+#players-table tr:hover {
+    background: rgba(108, 92, 231, 0.1);
+}
+
+.life {
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.life.lost {
+    color: var(--danger-color);
+    animation: heartbeat 0.5s;
+}
+
+@keyframes heartbeat {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.3); }
+    50% { transform: scale(1); }
+    75% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+.remove-btn {
+    background: var(--danger-color);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+#winner-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#winner-modal {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    max-width: 500px;
+    position: relative;
+    animation: bounceIn 0.5s;
+}
+
+@keyframes bounceIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.05); }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+#winner-modal h2 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+#winner-modal p {
+    font-size: 1.3rem;
+    margin-bottom: 30px;
+    color: var(--dark-color);
+}
+
+#winner-modal .trophy {
+    font-size: 5rem;
+    color: var(--accent-color);
+    margin-bottom: 20px;
+    animation: rotate 2s infinite linear;
+}
+
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#play-again-btn {
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    border-radius: 30px;
+}
+
+.confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--accent-color);
+    animation: confetti-fall 3s linear infinite;
+}
+
+@keyframes confetti-fall {
+    0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+    
+    #options {
+        grid-template-columns: 1fr;
+    }
+    
+    h1 {
+        font-size: 2rem;
+    }
+    
+    header p {
+        font-size: 1rem;
+    }
+}
+</style>
+</head>
+<body>
+<div class="bg-animation">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+</div>
+
+<header>
+    <h1><i class="fas fa-trophy"></i> Quiz Champions</h1>
+    <p>¡Demuestra quién es el campeón del conocimiento!</p>
+</header>
+
+<div class="container">
+    <div class="left-panel">
+        <div id="controls">
+            <input type="text" id="new-player" placeholder="Nombre del jugador">
+            <button id="add-player-btn" onclick="addPlayer()"><i class="fas fa-user-plus"></i> Agregar</button>
+        </div>
+
+        <div id="current-player" class="fade"></div>
+        <div id="question-text" class="fade"></div>
+        <div id="options"></div>
+        <div id="result" class="fade"></div>
+        <button id="next-turn" class="fade" style="display:none;" onclick="nextTurn()"><i class="fas fa-forward"></i> Siguiente Turno</button>
+    </div>
+
+    <div class="right-panel">
+        <h3><i class="fas fa-users"></i> Jugadores</h3>
+        <table id="players-table">
+            <thead>
+                <tr>
+                    <th>Jugador</th>
+                    <th>Vidas</th>
+                    <th>Puntos</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="players-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="winner-container">
+    <div id="winner-modal">
+        <div class="trophy"><i class="fas fa-trophy"></i></div>
+        <h2>¡Felicidades!</h2>
+        <p id="winner-text"></p>
+        <button id="play-again-btn" onclick="resetGame()"><i class="fas fa-redo"></i> Jugar de Nuevo</button>
+    </div>
+</div>
+
+<script>
+// ====== CONFIGURACIÓN INICIAL ======
+let players = [
+    {name:"Jonathan", lives:3, correct:0},
+    {name:"Angelino", lives:3, correct:0},
+    {name:"Andres", lives:3, correct:0},
+    {name:"Leo", lives:3, correct:0},
+    {name:"Carlos", lives:3, correct:0},
+    {name:"Ingrid", lives:3, correct:0},
+    {name:"Angela", lives:3, correct:0},
+    {name:"Ariana", lives:3, correct:0},
+];
+
+let currentPlayerIndex = 0;
+let questionAnswered = false;
+
+// ====== BANCO DE PREGUNTAS REALES ======
+const questions = [
+    { q:"¿Cuál es la capital de Francia?", a:["Madrid","París","Roma","Berlín"], correct:1 },
+    { q:"¿Quién escribió 'Cien años de soledad'?", a:["Gabriel García Márquez","Mario Vargas Llosa","Pablo Neruda","Julio Cortázar"], correct:0 },
+    { q:"¿Cuál es el planeta más grande del sistema solar?", a:["Saturno","Júpiter","Marte","Neptuno"], correct:1 },
+    { q:"¿En qué año llegó el hombre a la Luna?", a:["1965","1969","1972","1975"], correct:1 },
+    { q:"¿Cuál es el elemento químico con símbolo 'O'?", a:["Oro","Oxígeno","Osmio","Ozono"], correct:1 },
+    { q:"¿Qué idioma se habla en Brasil?", a:["Español","Portugués","Inglés","Francés"], correct:1 },
+    { q:"¿Cuál es el océano más grande?", a:["Atlántico","Pacífico","Índico","Ártico"], correct:1 },
+    { q:"¿Qué país tiene forma de bota?", a:["Grecia","Italia","España","Portugal"], correct:1 },
+    { q:"¿Quién pintó la Mona Lisa?", a:["Picasso","Leonardo da Vinci","Van Gogh","Rembrandt"], correct:1 },
+    { q:"¿Cuál es el animal más rápido del mundo?", a:["León","Tigre","Guepardo","Águila"], correct:2 },
+    { q:"¿Qué gas respiramos principalmente?", a:["Nitrógeno","Oxígeno","Dióxido de carbono","Hidrógeno"], correct:1 },
+    { q:"¿Cuál es la moneda de Japón?", a:["Yuan","Yen","Dólar","Won"], correct:1 },
+    { q:"¿Qué continente tiene más países?", a:["África","Asia","Europa","América"], correct:0 },
+    { q:"¿Quién descubrió América?", a:["Cristóbal Colón","Leif Erikson","Magallanes","Américo Vespucio"], correct:0 },
+    { q:"¿Cuál es la velocidad de la luz?", a:["300.000 km/s","150.000 km/s","1.000 km/s","30.000 km/s"], correct:0 },
+    { q:"¿Qué instrumento mide la temperatura?", a:["Barómetro","Termómetro","Higrómetro","Sismógrafo"], correct:1 },
+    { q:"¿Qué año comenzó la Segunda Guerra Mundial?", a:["1939","1941","1935","1945"], correct:0 },
+    { q:"¿Quién es el autor de 'Hamlet'?", a:["Shakespeare","Dante","Goethe","Tolstói"], correct:0 },
+    { q:"¿Cuál es el río más largo del mundo?", a:["Amazonas","Nilo","Misisipi","Yangtsé"], correct:0 },
+    { q:"¿Qué país ganó la Copa del Mundo 2018?", a:["Brasil","Alemania","Francia","Argentina"], correct:2 }
+];
+
+// ====== FUNCIONES ======
+function renderPlayers(){
+    const tbody = document.getElementById("players-body");
+    tbody.innerHTML="";
+    players.forEach((p,i)=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${p.name}</td>
+            <td class="life ${p.lives<3?'lost':''}">${"❤️".repeat(p.lives)}</td>
+            <td>${p.correct}</td>
+            <td><button class="remove-btn" onclick="removePlayer(${i})"><i class="fas fa-trash"></i></button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function addPlayer(){
+    const input = document.getElementById("new-player");
+    const name = input.value.trim();
+    if(name){
+        players.push({name:name, lives:3, correct:0});
+        input.value="";
+        renderPlayers();
+        if(players.length === 1) {
+            showQuestion();
+        }
+    }
+}
+
+function removePlayer(i){
+    players.splice(i,1);
+    if(currentPlayerIndex >= players.length) currentPlayerIndex=0;
+    renderPlayers();
+    if(players.length === 0) {
+        document.getElementById("current-player").textContent = "";
+        document.getElementById("question-text").textContent = "";
+        document.getElementById("options").innerHTML = "";
+        document.getElementById("result").textContent = "";
+        document.getElementById("next-turn").style.display="none";
+    }
+}
+
+function showQuestion(){
+    if(players.length===0){
+        return;
+    }
+    const player = players[currentPlayerIndex];
+    document.getElementById("current-player").textContent = `Turno de: ${player.name}`;
+
+    // Elegir pregunta aleatoria
+    const questionIndex = Math.floor(Math.random()*questions.length);
+    const q = questions[questionIndex];
+    document.getElementById("question-text").textContent = `${q.q}`;
+    const optionsDiv = document.getElementById("options");
+    optionsDiv.innerHTML="";
+    questionAnswered = false;
+    
+    q.a.forEach((opt,i)=>{
+        const btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.className="option fade";
+        btn.onclick = () => {
+            if (!questionAnswered) {
+                checkAnswer(i, q.correct);
+                questionAnswered = true;
+            }
+        };
+        optionsDiv.appendChild(btn);
+    });
+    document.getElementById("result").textContent="";
+    document.getElementById("result").className = "fade";
+    document.getElementById("next-turn").style.display="none";
+}
+
+function checkAnswer(selected, correct){
+    const player = players[currentPlayerIndex];
+    const resultEl = document.getElementById("result");
+    const options = document.querySelectorAll(".option");
+    
+    if(selected===correct){
+        player.correct++;
+        resultEl.textContent=`¡Correcto! +1 punto`;
+        resultEl.className = "fade correct";
+        options[selected].classList.add("correct");
+    } else {
+        player.lives--;
+        resultEl.textContent=`Incorrecto. Te quedan ${player.lives} vidas`;
+        resultEl.className = "fade incorrect";
+        options[selected].classList.add("incorrect");
+        options[correct].classList.add("correct");
+        
+        if(player.lives===0){
+            resultEl.textContent=`${player.name} ha sido eliminado 😢`;
+        }
+    }
+    
+    renderPlayers();
+    document.getElementById("next-turn").style.display="inline-block";
+}
+
+function nextTurn(){
+    const activePlayers = players.filter(p=>p.lives>0);
+    if(activePlayers.length===1){
+        showWinner(activePlayers[0]);
+        return;
+    }
+
+    do{
+        currentPlayerIndex = (currentPlayerIndex+1) % players.length;
+    } while(players[currentPlayerIndex].lives===0);
+    showQuestion();
+}
+
+function showWinner(player){
+    const winnerContainer = document.getElementById("winner-container");
+    const winnerText = document.getElementById("winner-text");
+    
+    winnerContainer.style.display = "flex";
+    winnerText.textContent = `${player.name} es el campeón con ${player.correct} puntos`;
+    
+    // Create confetti
+    for (let i = 0; i < 100; i++) {
+        createConfetti();
+    }
+}
+
+function createConfetti() {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti';
+    confetti.style.left = Math.random() * 100 + '%';
+    confetti.style.backgroundColor = ['#6c5ce7', '#fd79a8', '#fdcb6e', '#55efc4', '#ff7675'][Math.floor(Math.random() * 5)];
+    confetti.style.animationDelay = Math.random() * 3 + 's';
+    confetti.style.animationDuration = Math.random() * 3 + 2 + 's';
+    document.getElementById('winner-container').appendChild(confetti);
+    
+    setTimeout(() => {
+        confetti.remove();
+    }, 5000);
+}
+
+function resetGame() {
+    players.forEach(p => {
+        p.lives = 3;
+        p.correct = 0;
+    });
+    currentPlayerIndex = 0;
+    document.getElementById("winner-container").style.display = "none";
+    renderPlayers();
+    showQuestion();
+}
+
+// ====== INICIO ======
+renderPlayers();
+showQuestion();
+</script>
+</body>
+</html>

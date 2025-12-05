@@ -547,7 +547,7 @@ button:hover {
     margin-bottom: 40px;
 }
 
-.continue-btn, .play-again-btn {
+.continue-btn, .play-again-btn, .reset-game-btn {
     padding: 20px 40px;
     font-size: 1.5rem;
     border-radius: 50px;
@@ -562,6 +562,12 @@ button:hover {
 .play-again-btn {
     background: linear-gradient(90deg, var(--success), #00b894);
     color: white;
+}
+
+.reset-game-btn {
+    background: linear-gradient(90deg, var(--accent), #f39c12);
+    color: white;
+    margin-top: 20px;
 }
 
 /* Partículas */
@@ -972,28 +978,6 @@ button:hover {
     overflow-y: auto;
 }
 
-.voice-option {
-    padding: 8px;
-    margin: 5px 0;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.voice-option:hover {
-    background: rgba(108, 92, 231, 0.1);
-}
-
-.voice-option.selected {
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    color: white;
-}
-
-.voice-option.comentarista {
-    border-left: 4px solid var(--accent);
-    font-weight: 600;
-}
-
 .message-input {
     width: 100%;
     padding: 15px;
@@ -1111,7 +1095,6 @@ button:hover {
 
 <!-- Fondo animado -->
 <div class="bg-animation">
-    <span></span>
     <span></span>
     <span></span>
     <span></span>
@@ -1254,6 +1237,11 @@ button:hover {
                 
                 <button type="submit" id="save-question-btn"><i class="fas fa-save"></i> Guardar Pregunta</button>
             </form>
+            
+            <!-- Botón de reinicio -->
+            <button class="reset-game-btn" onclick="confirmResetGame()">
+                <i class="fas fa-redo"></i> Iniciar Juego Nuevamente
+            </button>
         </div>
         
         <div id="view-tab" class="tab-content">
@@ -2307,7 +2295,7 @@ function loadVoices() {
     defaultOption.textContent = 'Seleccionar voz...';
     voiceSelect.appendChild(defaultOption);
     
-    // Filtrar voces en español de forma más amplia
+    // Filtrar TODAS las voces en español de forma más amplia
     const spanishVoices = voices.filter(voice => 
         voice.lang.includes('es-ES') || 
         voice.lang.includes('es-MX') || 
@@ -2316,7 +2304,10 @@ function loadVoices() {
         voice.lang.includes('es-CL') || 
         voice.lang.includes('es-PE') || 
         voice.lang.includes('es-VE') || 
-        voice.lang.includes('es')
+        voice.lang.includes('es') ||
+        voice.name.toLowerCase().includes('spanish') ||
+        voice.name.toLowerCase().includes('español') ||
+        voice.name.toLowerCase().includes('espana')
     );
     
     // Filtrar voces en inglés
@@ -2332,42 +2323,45 @@ function loadVoices() {
         const spanishGroup = document.createElement('optgroup');
         spanishGroup.label = '🇪🇸 Voces en Español';
         
-        // Añadir voces españolas destacadas
-        const premiumSpanish = spanishVoices.filter(voice => 
-            voice.name.includes('Google') || 
-            voice.name.includes('Microsoft') || 
-            voice.name.includes('Amazon') ||
-            voice.name.includes('Azure')
-        );
-        
-        // Añadir primero las voces premium
-        premiumSpanish.forEach(voice => {
+        // Añadir TODAS las voces españolas disponibles
+        spanishVoices.forEach(voice => {
             const option = document.createElement('option');
             option.value = voice.name;
-            option.textContent = `${voice.name} (${voice.lang}) ⭐ PREMIUM`;
-            spanishGroup.appendChild(option);
-        });
-        
-        // Añadir el resto de voces españolas
-        spanishVoices.forEach(voice => {
-            if (!premiumSpanish.includes(voice)) {
-                const option = document.createElement('option');
-                option.value = voice.name;
-                option.textContent = `${voice.name} (${voice.lang})`;
-                
-                // Añadir iconos según características
-                if (voice.name.includes('female') || voice.name.includes('mujer')) {
-                    option.textContent += ' 👩';
-                }
-                if (voice.name.includes('male') || voice.name.includes('hombre')) {
-                    option.textContent += ' 👨';
-                }
-                if (voice.name.includes('comentarista') || voice.name.includes('announcer')) {
-                    option.textContent += ' 🎤';
-                }
-                
-                spanishGroup.appendChild(option);
+            
+            // Crear texto descriptivo
+            let voiceText = `${voice.name} (${voice.lang})`;
+            
+            // Añadir iconos según características
+            if (voice.name.toLowerCase().includes('google')) {
+                voiceText += ' 🌟';
             }
+            if (voice.name.toLowerCase().includes('microsoft')) {
+                voiceText += ' 🪟';
+            }
+            if (voice.name.toLowerCase().includes('amazon')) {
+                voiceText += ' 🔊';
+            }
+            if (voice.name.toLowerCase().includes('azure')) {
+                voiceText += ' ☁️';
+            }
+            if (voice.name.toLowerCase().includes('female') || voice.name.toLowerCase().includes('mujer')) {
+                voiceText += ' 👩';
+            }
+            if (voice.name.toLowerCase().includes('male') || voice.name.toLowerCase().includes('hombre')) {
+                voiceText += ' 👨';
+            }
+            if (voice.name.toLowerCase().includes('comentarista') || voice.name.toLowerCase().includes('announcer')) {
+                voiceText += ' 🎤';
+            }
+            if (voice.name.toLowerCase().includes('natural')) {
+                voiceText += ' 🗣️';
+            }
+            if (voice.name.toLowerCase().includes('premium') || voice.name.toLowerCase().includes('hd')) {
+                voiceText += ' 💎';
+            }
+            
+            option.textContent = voiceText;
+            spanishGroup.appendChild(option);
         });
         
         voiceSelect.appendChild(spanishGroup);
@@ -2382,7 +2376,7 @@ function loadVoices() {
             const option = document.createElement('option');
             option.value = voice.name;
             option.textContent = `${voice.name} (${voice.lang})`;
-            if (voice.name.includes('comentarista') || voice.name.includes('announcer')) {
+            if (voice.name.toLowerCase().includes('comentarista') || voice.name.toLowerCase().includes('announcer')) {
                 option.textContent += ' 🎤';
             }
             englishGroup.appendChild(option);
@@ -2456,6 +2450,81 @@ function testWrongAnswerSound() {
     const correctAnswer = "Respuesta Correcta";
     const message = document.getElementById('wrong-answer-input').value.replace('{respuesta}', correctAnswer);
     speak(message);
+}
+
+// ====== FUNCIÓN DE CONFIRMACIÓN DE REINICIO ======
+function confirmResetGame() {
+    // Mostrar diálogo de confirmación
+    const confirmDialog = document.createElement('div');
+    confirmDialog.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0,0,0.9);
+        color: white;
+        padding: 30px;
+        border-radius: 20px;
+        z-index: 10000;
+        text-align: center;
+        font-family: 'Fredoka', sans-serif;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        animation: fadeIn 0.3s ease-out;
+    `;
+    
+    confirmDialog.innerHTML = `
+        <h2 style="margin-bottom: 20px; color: var(--accent); font-size: 1.8rem;">
+            <i class="fas fa-exclamation-triangle"></i> ¿Estás seguro de reiniciar el juego?
+        </h2>
+        <p style="margin-bottom: 25px; font-size: 1.1rem; line-height: 1.5;">
+            Se perderán todos los puntos y vidas actuales
+        </p>
+        <p style="margin-bottom: 25px; font-size: 1rem;">
+            Los jugadores volverán a empezar desde el principio
+        </p>
+        <div style="display: flex; gap: 15px; justify-content: center;">
+            <button onclick="cancelResetGame()" style="background: var(--light); color: var(--dark);">
+                <i class="fas fa-times"></i> Cancelar
+            </button>
+            <button onclick="executeResetGame()" style="background: var(--danger); color: white;">
+                <i class="fas fa-redo"></i> Sí, reiniciar
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(confirmDialog);
+}
+
+function cancelResetGame() {
+    // Eliminar el diálogo
+    const confirmDialog = document.querySelector('div[style*="position: fixed"]');
+    if (confirmDialog) {
+        confirmDialog.remove();
+    }
+}
+
+function executeResetGame() {
+    // Eliminar el diálogo
+    const confirmDialog = document.querySelector('div[style*="position: fixed"]');
+    if (confirmDialog) {
+        confirmDialog.remove();
+    }
+    
+    // Realizar el reinicio
+    players.forEach(p => {
+        p.lives = 3;
+        p.correct = 0;
+    });
+    currentPlayerIndex = 0;
+    document.getElementById("winner-container").style.display = "none";
+    renderPlayers();
+    showPlayerTurn();
+    
+    // Sincronizar reinicio
+    syncToFirebase();
+    
+    // Mostrar notificación
+    showNotification('¡Juego reiniciado exitosamente!', 'success');
 }
 
 // ====== INICIO ======

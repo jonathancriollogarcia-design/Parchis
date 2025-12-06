@@ -31,9 +31,14 @@
 body {
     font-family: 'Fredoka', sans-serif;
     background: var(--bg);
+    background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: -moz-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: var(--dark);
     min-height: 100vh;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* Indicador de conexión */
@@ -75,9 +80,29 @@ body {
     50% { transform: scale(1.05); }
 }
 
+@-webkit-keyframes pulse {
+    0%, 100% { -webkit-transform: scale(1); }
+    50% { -webkit-transform: scale(1.05); }
+}
+
+@-moz-keyframes pulse {
+    0%, 100% { -moz-transform: scale(1); }
+    50% { -moz-transform: scale(1.05); }
+}
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+@-webkit-keyframes fadeIn {
+    from { opacity: 0; -webkit-transform: translateY(20px); }
+    to { opacity: 1; -webkit-transform: translateY(0); }
+}
+
+@-moz-keyframes fadeIn {
+    from { opacity: 0; -moz-transform: translateY(20px); }
+    to { opacity: 1; -moz-transform: translateY(0); }
 }
 
 @keyframes shake {
@@ -183,7 +208,7 @@ header p {
     margin-top: 10px;
 }
 
-.admin-btn, .sound-toggle {
+.admin-btn, .sound-toggle, .reset-game-btn {
     position: absolute;
     top: 20px;
     padding: 10px 20px;
@@ -193,6 +218,8 @@ header p {
     font-family: 'Fredoka', sans-serif;
     font-weight: 600;
     transition: all 0.3s;
+    -webkit-transition: all 0.3s;
+    -moz-transition: all 0.3s;
 }
 
 .admin-btn {
@@ -211,6 +238,13 @@ header p {
     background: linear-gradient(90deg, var(--light), var(--dark));
 }
 
+.reset-game-btn {
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, var(--accent), #f39c12);
+    color: white;
+}
+
 /* Contenedor principal */
 .container {
     display: flex;
@@ -225,6 +259,8 @@ header p {
     border-radius: 20px;
     padding: 25px;
     transition: transform 0.3s;
+    -webkit-transition: transform 0.3s;
+    -moz-transition: transform 0.3s;
 }
 
 .left-panel {
@@ -239,6 +275,8 @@ header p {
 
 .left-panel:hover, .right-panel:hover {
     transform: translateY(-5px);
+    -webkit-transform: translateY(-5px);
+    -moz-transform: translateY(-5px);
 }
 
 /* Controles */
@@ -265,10 +303,24 @@ button {
     font-family: 'Fredoka', sans-serif;
     font-weight: 600;
     transition: all 0.3s;
+    -webkit-transition: all 0.3s;
+    -moz-transition: all 0.3s;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    outline: none;
 }
 
 button:hover {
     transform: translateY(-3px);
+    -webkit-transform: translateY(-3px);
+    -moz-transform: translateY(-3px);
+}
+
+button:active {
+    transform: translateY(-1px);
+    -webkit-transform: translateY(-1px);
+    -moz-transform: translateY(-1px);
 }
 
 #add-player-btn {
@@ -384,6 +436,8 @@ button:hover {
 
 .option:hover {
     transform: translateY(-5px);
+    -webkit-transform: translateY(-5px);
+    -moz-transform: translateY(-5px);
 }
 
 .option.correct {
@@ -547,7 +601,7 @@ button:hover {
     margin-bottom: 40px;
 }
 
-.continue-btn, .play-again-btn, .reset-game-btn {
+.continue-btn, .play-again-btn {
     padding: 20px 40px;
     font-size: 1.5rem;
     border-radius: 50px;
@@ -562,12 +616,6 @@ button:hover {
 .play-again-btn {
     background: linear-gradient(90deg, var(--success), #00b894);
     color: white;
-}
-
-.reset-game-btn {
-    background: linear-gradient(90deg, var(--accent), #f39c12);
-    color: white;
-    margin-top: 20px;
 }
 
 /* Partículas */
@@ -666,6 +714,17 @@ button:hover {
     border-radius: 30px;
     font-family: 'Fredoka', sans-serif;
     background: rgba(255, 255, 255, 0.7);
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    outline: none;
+}
+
+.login-input:focus {
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
+    -webkit-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
+    -moz-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
 }
 
 #login-btn {
@@ -752,6 +811,17 @@ button:hover {
     border: 2px solid var(--primary);
     border-radius: 15px;
     font-family: 'Fredoka', sans-serif;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    outline: none;
+}
+
+.form-input:focus {
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
+    -webkit-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
+    -moz-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
 }
 
 .options-input {
@@ -766,6 +836,17 @@ button:hover {
     border-radius: 15px;
     font-family: 'Fredoka', sans-serif;
     background: white;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    outline: none;
+}
+
+.correct-select:focus {
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
+    -webkit-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
+    -moz-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
 }
 
 #save-question-btn {
@@ -871,7 +952,11 @@ button:hover {
 
 .photo-card:hover {
     transform: translateY(-5px);
+    -webkit-transform: translateY(-5px);
+    -moz-transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(108, 92, 231, 0.2);
+    -webkit-box-shadow: 0 8px 20px rgba(108, 92, 231, 0.2);
+    -moz-box-shadow: 0 8px 20px rgba(108, 92, 231, 0.2);
 }
 
 .photo-preview {
@@ -890,6 +975,17 @@ button:hover {
     border: 2px solid var(--primary);
     border-radius: 10px;
     font-family: 'Fredoka', sans-serif;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    outline: none;
+}
+
+.player-name-input:focus {
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
+    -webkit-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
+    -moz-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
 }
 
 .photo-upload-btn, .delete-photo-btn {
@@ -932,6 +1028,8 @@ button:hover {
 .add-photo-card:hover {
     background: rgba(108, 92, 231, 0.1);
     transform: translateY(-5px);
+    -webkit-transform: translateY(-5px);
+    -moz-transform: translateY(-5px);
 }
 
 .add-photo-card i {
@@ -976,6 +1074,17 @@ button:hover {
     margin-bottom: 10px;
     max-height: 200px;
     overflow-y: auto;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    outline: none;
+}
+
+.voice-select:focus {
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
+    -webkit-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
+    -moz-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
 }
 
 .message-input {
@@ -987,6 +1096,17 @@ button:hover {
     margin-bottom: 15px;
     min-height: 80px;
     resize: vertical;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    outline: none;
+}
+
+.message-input:focus {
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
+    -webkit-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
+    -moz-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
 }
 
 .test-sound-btn {
@@ -1026,6 +1146,38 @@ button:hover {
     animation: spin 1s ease-in-out infinite;
 }
 
+/* Mejoras para el modo oscuro en navegadores que lo soporten */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --card: rgba(45, 52, 54, 0.9);
+        --light: #636e72;
+    }
+    
+    body {
+        color: #dfe6e9;
+    }
+    
+    input, textarea, select {
+        background: rgba(45, 52, 54, 0.7);
+        color: #dfe6e9;
+    }
+}
+
+/* Mejoras para dispositivos táctiles */
+@media (hover: none) {
+    button:hover {
+        transform: none;
+        -webkit-transform: none;
+        -moz-transform: none;
+    }
+    
+    button:active {
+        transform: scale(0.95);
+        -webkit-transform: scale(0.95);
+        -moz-transform: scale(0.95);
+    }
+}
+
 /* Diseño responsivo */
 @media (max-width: 768px) {
     .container {
@@ -1044,7 +1196,7 @@ button:hover {
         font-size: 1rem;
     }
     
-    .admin-btn, .sound-toggle {
+    .admin-btn, .sound-toggle, .reset-game-btn {
         position: static;
         margin-top: 10px;
         display: block;
@@ -1111,6 +1263,9 @@ button:hover {
     <p>¡Demuestra quién es el campeón del conocimiento!</p>
     <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">
         <i class="fas fa-volume-up"></i> <span id="sound-text">Sonido ON</span>
+    </button>
+    <button class="reset-game-btn" onclick="confirmResetGame()">
+        <i class="fas fa-redo"></i> Reiniciar Juego
     </button>
     <button class="admin-btn" onclick="showLogin()"><i class="fas fa-user-shield"></i> Administrador</button>
 </header>
@@ -1237,11 +1392,6 @@ button:hover {
                 
                 <button type="submit" id="save-question-btn"><i class="fas fa-save"></i> Guardar Pregunta</button>
             </form>
-            
-            <!-- Botón de reinicio -->
-            <button class="reset-game-btn" onclick="confirmResetGame()">
-                <i class="fas fa-redo"></i> Iniciar Juego Nuevamente
-            </button>
         </div>
         
         <div id="view-tab" class="tab-content">
@@ -1307,6 +1457,7 @@ button:hover {
         </div>
     </div>
 </div>
+
 <script>
 // ====== CONFIGURACIÓN DE FIREBASE ======
 const firebaseConfig = {
@@ -1444,7 +1595,7 @@ function syncToFirebase() {
         players: players,
         currentPlayerIndex: currentPlayerIndex,
         questions: questions,
-        soundSettings: soundSettings,
+        soundSettings: soundSettings,  // Asegurarse de incluir las configuraciones de sonido
         playerPhotos: playerPhotos,
         timestamp: Date.now()
     };
@@ -1485,8 +1636,20 @@ function setupFirebaseListeners() {
                 if (data.players) players = data.players;
                 if (data.currentPlayerIndex !== undefined) currentPlayerIndex = data.currentPlayerIndex;
                 if (data.questions) questions = data.questions;
-                if (data.soundSettings) soundSettings = data.soundSettings;
                 if (data.playerPhotos) playerPhotos = data.playerPhotos;
+                
+                // Actualizar configuración de sonido y recargar voces si es necesario
+                if (data.soundSettings) {
+                    const previousVoice = soundSettings.selectedVoice;
+                    soundSettings = data.soundSettings;
+                    
+                    // Si cambió la voz, recargar las voces
+                    if (previousVoice !== soundSettings.selectedVoice) {
+                        setTimeout(() => {
+                            loadVoices();
+                        }, 100);
+                    }
+                }
                 
                 // Actualizar UI
                 renderPlayers();
@@ -1583,19 +1746,37 @@ function speak(text) {
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
     
+    // Cargar voces si no están cargadas
+    let voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+        // Forzar carga de voces
+        window.speechSynthesis.getVoices();
+        voices = window.speechSynthesis.getVoices();
+    }
+    
     // Usar voz seleccionada si está disponible
     if (soundSettings.selectedVoice) {
-        const voices = window.speechSynthesis.getVoices();
         const selectedVoice = voices.find(voice => voice.name === soundSettings.selectedVoice);
         if (selectedVoice) {
             utterance.voice = selectedVoice;
+        } else {
+            // Si la voz guardada no está disponible, buscar una voz en español
+            const spanishVoice = voices.find(voice => voice.lang.includes('es'));
+            if (spanishVoice) {
+                utterance.voice = spanishVoice;
+                // Actualizar la voz seleccionada
+                soundSettings.selectedVoice = spanishVoice.name;
+                saveSoundSettings();
+            }
         }
     } else {
         // Seleccionar voz española por defecto
-        const voices = window.speechSynthesis.getVoices();
         const spanishVoice = voices.find(voice => voice.lang.includes('es'));
         if (spanishVoice) {
             utterance.voice = spanishVoice;
+            // Guardar la voz seleccionada
+            soundSettings.selectedVoice = spanishVoice.name;
+            saveSoundSettings();
         }
     }
     
@@ -1617,10 +1798,196 @@ function speakWrongAnswer(correctAnswer) {
     speak(message);
 }
 
-// Cargar voces cuando estén disponibles
-window.speechSynthesis.onvoiceschanged = function() {
-    loadVoices();
-};
+// ====== FUNCIONES DE VOZ MEJORADAS ======
+function loadVoices() {
+    // Forzar carga de voces
+    let voices = window.speechSynthesis.getVoices();
+    
+    // Si no hay voces, esperar y volver a intentar
+    if (voices.length === 0) {
+        setTimeout(() => {
+            loadVoices();
+        }, 100);
+        return;
+    }
+    
+    const voiceSelect = document.getElementById('voice-select');
+    if (!voiceSelect) return;
+    
+    voiceSelect.innerHTML = '';
+    
+    // Agregar opción por defecto
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Seleccionar voz...';
+    voiceSelect.appendChild(defaultOption);
+    
+    // Filtrar TODAS las voces en español de forma más amplia
+    const spanishVoices = voices.filter(voice => 
+        voice.lang.includes('es-ES') || 
+        voice.lang.includes('es-MX') || 
+        voice.lang.includes('es-AR') || 
+        voice.lang.includes('es-CO') || 
+        voice.lang.includes('es-CL') || 
+        voice.lang.includes('es-PE') || 
+        voice.lang.includes('es-VE') || 
+        voice.lang.includes('es') ||
+        voice.name.toLowerCase().includes('spanish') ||
+        voice.name.toLowerCase().includes('español') ||
+        voice.name.toLowerCase().includes('espana')
+    );
+    
+    // Filtrar voces en inglés
+    const englishVoices = voices.filter(voice => voice.lang.includes('en'));
+    
+    // Otras voces
+    const otherVoices = voices.filter(voice => 
+        !voice.lang.includes('es') && !voice.lang.includes('en')
+    );
+    
+    // Añadir voces españolas
+    if (spanishVoices.length > 0) {
+        const spanishGroup = document.createElement('optgroup');
+        spanishGroup.label = '🇪🇸 Voces en Español';
+        
+        // Añadir TODAS las voces españolas disponibles
+        spanishVoices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.name;
+            
+            // Crear texto descriptivo
+            let voiceText = `${voice.name} (${voice.lang})`;
+            
+            // Añadir iconos según características
+            if (voice.name.toLowerCase().includes('google')) {
+                voiceText += ' 🌟';
+            }
+            if (voice.name.toLowerCase().includes('microsoft')) {
+                voiceText += ' 🪟';
+            }
+            if (voice.name.toLowerCase().includes('amazon')) {
+                voiceText += ' 🔊';
+            }
+            if (voice.name.toLowerCase().includes('azure')) {
+                voiceText += ' ☁️';
+            }
+            if (voice.name.toLowerCase().includes('female') || voice.name.toLowerCase().includes('mujer')) {
+                voiceText += ' 👩';
+            }
+            if (voice.name.toLowerCase().includes('male') || voice.name.toLowerCase().includes('hombre')) {
+                voiceText += ' 👨';
+            }
+            if (voice.name.toLowerCase().includes('comentarista') || voice.name.toLowerCase().includes('announcer')) {
+                voiceText += ' 🎤';
+            }
+            if (voice.name.toLowerCase().includes('natural')) {
+                voiceText += ' 🗣️';
+            }
+            if (voice.name.toLowerCase().includes('premium') || voice.name.toLowerCase().includes('hd')) {
+                voiceText += ' 💎';
+            }
+            
+            option.textContent = voiceText;
+            spanishGroup.appendChild(option);
+        });
+        
+        voiceSelect.appendChild(spanishGroup);
+    }
+    
+    // Añadir voces en inglés
+    if (englishVoices.length > 0) {
+        const englishGroup = document.createElement('optgroup');
+        englishGroup.label = '🇬🇧🇺🇸 English Voices';
+        
+        englishVoices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.name;
+            option.textContent = `${voice.name} (${voice.lang})`;
+            if (voice.name.toLowerCase().includes('comentarista') || voice.name.toLowerCase().includes('announcer')) {
+                option.textContent += ' 🎤';
+            }
+            englishGroup.appendChild(option);
+        });
+        
+        voiceSelect.appendChild(englishGroup);
+    }
+    
+    // Añadir otras voces
+    if (otherVoices.length > 0) {
+        const otherGroup = document.createElement('optgroup');
+        otherGroup.label = '🌍 Otras Voces';
+        
+        otherVoices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.name;
+            option.textContent = `${voice.name} (${voice.lang})`;
+            otherGroup.appendChild(option);
+        });
+        
+        voiceSelect.appendChild(otherGroup);
+    }
+    
+    // Seleccionar voz guardada
+    if (soundSettings.selectedVoice) {
+        voiceSelect.value = soundSettings.selectedVoice;
+    } else {
+        // Seleccionar primera voz española por defecto
+        const firstSpanish = spanishVoices[0];
+        if (firstSpanish) {
+            voiceSelect.value = firstSpanish.name;
+            soundSettings.selectedVoice = firstSpanish.name;
+            // Guardar automáticamente la selección por defecto
+            saveSoundSettings();
+        }
+    }
+}
+
+function updateVoiceSelection() {
+    const voiceSelect = document.getElementById('voice-select');
+    soundSettings.selectedVoice = voiceSelect.value;
+    
+    // Guardar en localStorage
+    localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
+    
+    // Sincronizar con Firebase inmediatamente
+    syncToFirebase();
+    
+    // Probar la voz seleccionada
+    const testMessage = "Esta es la voz seleccionada para el juego";
+    speak(testMessage);
+}
+
+function saveSoundSettings() {
+    soundSettings.eliminationMessage = document.getElementById('elimination-message-input').value;
+    soundSettings.victoryMessage = document.getElementById('victory-message-input').value;
+    soundSettings.wrongAnswerMessage = document.getElementById('wrong-answer-input').value;
+    
+    // Guardar en localStorage
+    localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
+    
+    // Sincronizar con Firebase inmediatamente
+    syncToFirebase();
+    
+    showNotification('Configuración de sonido guardada exitosamente', 'success');
+}
+
+function testEliminationSound() {
+    const playerName = "Jugador de Prueba";
+    const message = document.getElementById('elimination-message-input').value.replace('{nombre}', playerName);
+    speak(message);
+}
+
+function testVictorySound() {
+    const playerName = "Jugador de Prueba";
+    const message = document.getElementById('victory-message-input').value.replace('{nombre}', playerName);
+    speak(message);
+}
+
+function testWrongAnswerSound() {
+    const correctAnswer = "Respuesta Correcta";
+    const message = document.getElementById('wrong-answer-input').value.replace('{respuesta}', correctAnswer);
+    speak(message);
+}
 
 // ====== FUNCIONES DE JUEGO ======
 function renderPlayers(){
@@ -2009,6 +2376,11 @@ function loadSoundSettings() {
     
     // Cargar voces
     loadVoices();
+    
+    // Forzar sincronización con Firebase si estamos online
+    if (isOnline) {
+        syncToFirebase();
+    }
 }
 
 function generateAIQuestion() {
@@ -2271,187 +2643,6 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// ====== FUNCIONES DE SONIDO (ADICIONALES) - VERSIÓN CORREGIDA CON MÁS VOCES ======
-function loadVoices() {
-    // Forzar carga de voces
-    let voices = window.speechSynthesis.getVoices();
-    
-    // Si no hay voces, esperar y volver a intentar
-    if (voices.length === 0) {
-        setTimeout(() => {
-            loadVoices();
-        }, 100);
-        return;
-    }
-    
-    const voiceSelect = document.getElementById('voice-select');
-    if (!voiceSelect) return;
-    
-    voiceSelect.innerHTML = '';
-    
-    // Agregar opción por defecto
-    const defaultOption = document.createElement('option');
-    defaultOption.value = '';
-    defaultOption.textContent = 'Seleccionar voz...';
-    voiceSelect.appendChild(defaultOption);
-    
-    // Filtrar TODAS las voces en español de forma más amplia
-    const spanishVoices = voices.filter(voice => 
-        voice.lang.includes('es-ES') || 
-        voice.lang.includes('es-MX') || 
-        voice.lang.includes('es-AR') || 
-        voice.lang.includes('es-CO') || 
-        voice.lang.includes('es-CL') || 
-        voice.lang.includes('es-PE') || 
-        voice.lang.includes('es-VE') || 
-        voice.lang.includes('es') ||
-        voice.name.toLowerCase().includes('spanish') ||
-        voice.name.toLowerCase().includes('español') ||
-        voice.name.toLowerCase().includes('espana')
-    );
-    
-    // Filtrar voces en inglés
-    const englishVoices = voices.filter(voice => voice.lang.includes('en'));
-    
-    // Otras voces
-    const otherVoices = voices.filter(voice => 
-        !voice.lang.includes('es') && !voice.lang.includes('en')
-    );
-    
-    // Añadir voces españolas
-    if (spanishVoices.length > 0) {
-        const spanishGroup = document.createElement('optgroup');
-        spanishGroup.label = '🇪🇸 Voces en Español';
-        
-        // Añadir TODAS las voces españolas disponibles
-        spanishVoices.forEach(voice => {
-            const option = document.createElement('option');
-            option.value = voice.name;
-            
-            // Crear texto descriptivo
-            let voiceText = `${voice.name} (${voice.lang})`;
-            
-            // Añadir iconos según características
-            if (voice.name.toLowerCase().includes('google')) {
-                voiceText += ' 🌟';
-            }
-            if (voice.name.toLowerCase().includes('microsoft')) {
-                voiceText += ' 🪟';
-            }
-            if (voice.name.toLowerCase().includes('amazon')) {
-                voiceText += ' 🔊';
-            }
-            if (voice.name.toLowerCase().includes('azure')) {
-                voiceText += ' ☁️';
-            }
-            if (voice.name.toLowerCase().includes('female') || voice.name.toLowerCase().includes('mujer')) {
-                voiceText += ' 👩';
-            }
-            if (voice.name.toLowerCase().includes('male') || voice.name.toLowerCase().includes('hombre')) {
-                voiceText += ' 👨';
-            }
-            if (voice.name.toLowerCase().includes('comentarista') || voice.name.toLowerCase().includes('announcer')) {
-                voiceText += ' 🎤';
-            }
-            if (voice.name.toLowerCase().includes('natural')) {
-                voiceText += ' 🗣️';
-            }
-            if (voice.name.toLowerCase().includes('premium') || voice.name.toLowerCase().includes('hd')) {
-                voiceText += ' 💎';
-            }
-            
-            option.textContent = voiceText;
-            spanishGroup.appendChild(option);
-        });
-        
-        voiceSelect.appendChild(spanishGroup);
-    }
-    
-    // Añadir voces en inglés
-    if (englishVoices.length > 0) {
-        const englishGroup = document.createElement('optgroup');
-        englishGroup.label = '🇬🇧🇺🇸 English Voices';
-        
-        englishVoices.forEach(voice => {
-            const option = document.createElement('option');
-            option.value = voice.name;
-            option.textContent = `${voice.name} (${voice.lang})`;
-            if (voice.name.toLowerCase().includes('comentarista') || voice.name.toLowerCase().includes('announcer')) {
-                option.textContent += ' 🎤';
-            }
-            englishGroup.appendChild(option);
-        });
-        
-        voiceSelect.appendChild(englishGroup);
-    }
-    
-    // Añadir otras voces
-    if (otherVoices.length > 0) {
-        const otherGroup = document.createElement('optgroup');
-        otherGroup.label = '🌍 Otras Voces';
-        
-        otherVoices.forEach(voice => {
-            const option = document.createElement('option');
-            option.value = voice.name;
-            option.textContent = `${voice.name} (${voice.lang})`;
-            otherGroup.appendChild(option);
-        });
-        
-        voiceSelect.appendChild(otherGroup);
-    }
-    
-    // Seleccionar voz guardada
-    if (soundSettings.selectedVoice) {
-        voiceSelect.value = soundSettings.selectedVoice;
-    } else {
-        // Seleccionar primera voz española por defecto
-        const firstSpanish = spanishVoices[0];
-        if (firstSpanish) {
-            voiceSelect.value = firstSpanish.name;
-            soundSettings.selectedVoice = firstSpanish.name;
-        }
-    }
-}
-
-function updateVoiceSelection() {
-    const voiceSelect = document.getElementById('voice-select');
-    soundSettings.selectedVoice = voiceSelect.value;
-    
-    // Sincronizar configuración
-    syncToFirebase();
-}
-
-function saveSoundSettings() {
-    soundSettings.eliminationMessage = document.getElementById('elimination-message-input').value;
-    soundSettings.victoryMessage = document.getElementById('victory-message-input').value;
-    soundSettings.wrongAnswerMessage = document.getElementById('wrong-answer-input').value;
-    
-    localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
-    
-    showNotification('Configuración de sonido guardada exitosamente', 'success');
-    
-    // Sincronizar con Firebase
-    syncToFirebase();
-}
-
-function testEliminationSound() {
-    const playerName = "Jugador de Prueba";
-    const message = document.getElementById('elimination-message-input').value.replace('{nombre}', playerName);
-    speak(message);
-}
-
-function testVictorySound() {
-    const playerName = "Jugador de Prueba";
-    const message = document.getElementById('victory-message-input').value.replace('{nombre}', playerName);
-    speak(message);
-}
-
-function testWrongAnswerSound() {
-    const correctAnswer = "Respuesta Correcta";
-    const message = document.getElementById('wrong-answer-input').value.replace('{respuesta}', correctAnswer);
-    speak(message);
-}
-
 // ====== FUNCIÓN DE CONFIRMACIÓN DE REINICIO ======
 function confirmResetGame() {
     // Mostrar diálogo de confirmación
@@ -2527,18 +2718,52 @@ function executeResetGame() {
     showNotification('¡Juego reiniciado exitosamente!', 'success');
 }
 
+// ====== INICIALIZACIÓN DE SÍNTESIS DE VOZ ======
+function initSpeechSynthesis() {
+    // Verificar si el navegador soporta síntesis de voz
+    if ('speechSynthesis' in window) {
+        // Forzar carga de voces en Chrome
+        if (window.chrome) {
+            window.speechSynthesis.getVoices();
+        }
+        
+        // Configurar evento para cargar voces cuando estén disponibles
+        window.speechSynthesis.onvoiceschanged = function() {
+            loadVoices();
+        };
+        
+        // Intentar cargar voces después de un pequeño retraso
+        setTimeout(() => {
+            loadVoices();
+        }, 500);
+    } else {
+        console.warn('La síntesis de voz no es compatible con este navegador');
+        // Deshabilitar funciones de voz
+        soundEnabled = false;
+        const soundToggle = document.getElementById('sound-toggle');
+        const soundText = document.getElementById('sound-text');
+        const icon = soundToggle.querySelector('i');
+        
+        soundToggle.classList.add('muted');
+        soundText.textContent = 'Sonido NO SOPORTADO';
+        icon.className = 'fas fa-volume-mute';
+        soundToggle.disabled = true;
+    }
+}
+
 // ====== INICIO ======
 document.addEventListener('DOMContentLoaded', function() {
     renderPlayers();
     showPlayerTurn();
     
+    // Inicializar síntesis de voz
+    initSpeechSynthesis();
+    
     // Configurar Firebase
     setupFirebaseListeners();
     
-    // Forzar carga de voces después de un pequeño retraso
-    setTimeout(() => {
-        loadVoices();
-    }, 500);
+    // Cargar configuración de sonido
+    loadSoundSettings();
 });
 </script>
 </body>

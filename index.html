@@ -1,2884 +1,2229 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiz Champions - Juego Multijugador</title>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-<style>
-:root {
-    --primary: #6c5ce7;
-    --secondary: #fd79a8;
-    --accent: #fdcb6e;
-    --success: #55efc4;
-    --danger: #ff7675;
-    --dark: #2d3436;
-    --light: #dfe6e9;
-    --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --card: rgba(255, 255, 255, 0.9);
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Fredoka', sans-serif;
-    background: var(--bg);
-    background: -webkit-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    background: -moz-linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: var(--dark);
-    min-height: 100vh;
-    overflow-x: hidden;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-/* Indicador de conexión */
-.connection-indicator {
-    position: fixed;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 8px 20px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    z-index: 10001;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.3s;
-    -webkit-transition: all 0.3s;
-    -moz-transition: all 0.3s;
-}
-
-.connection-indicator.connected {
-    background: rgba(85, 239, 196, 0.9);
-    color: var(--dark);
-}
-
-.connection-indicator.disconnected {
-    background: rgba(255, 118, 117, 0.9);
-    color: white;
-}
-
-.connection-indicator.syncing {
-    background: rgba(253, 203, 110, 0.9);
-    color: var(--dark);
-}
-
-/* Animaciones base */
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-@-webkit-keyframes pulse {
-    0%, 100% { -webkit-transform: scale(1); }
-    50% { -webkit-transform: scale(1.05); }
-}
-
-@-moz-keyframes pulse {
-    0%, 100% { -moz-transform: scale(1); }
-    50% { -moz-transform: scale(1.05); }
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@-webkit-keyframes fadeIn {
-    from { opacity: 0; -webkit-transform: translateY(20px); }
-    to { opacity: 1; -webkit-transform: translateY(0); }
-}
-
-@-moz-keyframes fadeIn {
-    from { opacity: 0; -moz-transform: translateY(20px); }
-    to { opacity: 1; -moz-transform: translateY(0); }
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-    20%, 40%, 60%, 80% { transform: translateX(5px); }
-}
-
-@keyframes shine {
-    0% { left: -100%; }
-    100% { left: 100%; }
-}
-
-@keyframes move {
-    0% { transform: translateY(0) rotate(0deg); opacity: 1; border-radius: 0; }
-    100% { transform: translateY(-1000px) rotate(720deg); opacity: 0; border-radius: 50%; }
-}
-
-@keyframes particleFall {
-    0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
-    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-}
-
-@keyframes progressShrink {
-    0% { width: 100%; }
-    100% { width: 0%; }
-}
-
-@keyframes soundWave {
-    0% { height: 10px; }
-    100% { height: 20px; }
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* Fondo animado */
-.bg-animation {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    z-index: -1;
-    overflow: hidden;
-}
-
-.bg-animation span {
-    position: absolute;
-    display: block;
-    width: 20px;
-    height: 20px;
-    background: rgba(255, 255, 255, 0.2);
-    animation: move 25s linear infinite;
-    bottom: -150px;
-}
-
-.bg-animation span:nth-child(1) { left: 25%; width: 80px; height: 80px; animation-delay: 0s; }
-.bg-animation span:nth-child(2) { left: 10%; width: 20px; height: 20px; animation-delay: 2s; animation-duration: 12s; }
-.bg-animation span:nth-child(3) { left: 70%; width: 20px; height: 20px; animation-delay: 4s; }
-.bg-animation span:nth-child(4) { left: 40%; width: 60px; height: 60px; animation-delay: 0s; animation-duration: 18s; }
-.bg-animation span:nth-child(5) { left: 65%; width: 20px; height: 20px; animation-delay: 0s; }
-.bg-animation span:nth-child(6) { left: 75%; width: 110px; height: 110px; animation-delay: 3s; }
-.bg-animation span:nth-child(7) { left: 35%; width: 150px; height: 150px; animation-delay: 7s; }
-.bg-animation span:nth-child(8) { left: 50%; width: 25px; height: 25px; animation-delay: 15s; animation-duration: 45s; }
-.bg-animation span:nth-child(9) { left: 20%; width: 15px; height: 15px; animation-delay: 2s; animation-duration: 35s; }
-.bg-animation span:nth-child(10) { left: 85%; width: 150px; height: 150px; animation-delay: 0s; animation-duration: 11s; }
-
-/* Header */
-header {
-    background: rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(10px);
-    padding: 20px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
-
-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    animation: shine 3s infinite;
-}
-
-h1 {
-    font-size: 2.5rem;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    font-weight: 700;
-}
-
-header p {
-    font-size: 1.2rem;
-    color: var(--dark);
-    margin-top: 10px;
-}
-
-.admin-btn, .sound-toggle, .reset-game-btn {
-    position: absolute;
-    top: 20px;
-    padding: 10px 20px;
-    border-radius: 30px;
-    border: none;
-    cursor: pointer;
-    font-family: 'Fredoka', sans-serif;
-    font-weight: 600;
-    transition: all 0.3s;
-    -webkit-transition: all 0.3s;
-    -moz-transition: all 0.3s;
-}
-
-.admin-btn {
-    right: 20px;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    color: white;
-}
-
-.sound-toggle {
-    left: 20px;
-    background: linear-gradient(90deg, var(--accent), #f39c12);
-    color: white;
-}
-
-.sound-toggle.muted {
-    background: linear-gradient(90deg, var(--light), var(--dark));
-}
-
-.reset-game-btn {
-    left: 50%;
-    transform: translateX(-50%);
-    background: linear-gradient(90deg, var(--accent), #f39c12);
-    color: white;
-}
-
-/* Contenedor principal */
-.container {
-    display: flex;
-    max-width: 1200px;
-    margin: 30px auto;
-    padding: 15px;
-    gap: 30px;
-}
-
-.left-panel, .right-panel {
-    background: var(--card);
-    border-radius: 20px;
-    padding: 25px;
-    transition: transform 0.3s;
-    -webkit-transition: transform 0.3s;
-    -moz-transition: transform 0.3s;
-}
-
-.left-panel {
-    flex: 2;
-    display: flex;
-    flex-direction: column;
-}
-
-.right-panel {
-    flex: 1;
-}
-
-.left-panel:hover, .right-panel:hover {
-    transform: translateY(-5px);
-    -webkit-transform: translateY(-5px);
-    -moz-transform: translateY(-5px);
-}
-
-/* Controles */
-#controls {
-    display: flex;
-    margin-bottom: 20px;
-    gap: 10px;
-}
-
-#new-player {
-    flex: 1;
-    padding: 12px 15px;
-    border: 2px solid var(--primary);
-    border-radius: 30px;
-    font-family: 'Fredoka', sans-serif;
-    background: rgba(255, 255, 255, 0.7);
-}
-
-button {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 30px;
-    cursor: pointer;
-    font-family: 'Fredoka', sans-serif;
-    font-weight: 600;
-    transition: all 0.3s;
-    -webkit-transition: all 0.3s;
-    -moz-transition: all 0.3s;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    outline: none;
-}
-
-button:hover {
-    transform: translateY(-3px);
-    -webkit-transform: translateY(-3px);
-    -moz-transform: translateY(-3px);
-}
-
-button:active {
-    transform: translateY(-1px);
-    -webkit-transform: translateY(-1px);
-    -moz-transform: translateY(-1px);
-}
-
-#add-player-btn {
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    color: white;
-}
-
-/* Jugador actual */
-#current-player {
-    font-size: 2rem;
-    font-weight: 600;
-    margin-bottom: 20px;
-    padding: 20px;
-    background: linear-gradient(90deg, var(--accent), var(--success));
-    border-radius: 15px;
-    color: white;
-    text-align: center;
-    min-height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: pulse 2s ease-in-out;
-}
-
-/* Temporizador */
-#countdown-container {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 300px;
-    margin-bottom: 20px;
-}
-
-.countdown-number {
-    font-size: 8rem;
-    font-weight: 700;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    animation: pulse 1s ease-in-out;
-    margin-bottom: 20px;
-}
-
-.countdown-text {
-    font-size: 1.5rem;
-    color: var(--primary);
-    font-weight: 600;
-}
-
-.countdown-progress {
-    width: 100%;
-    height: 8px;
-    background: rgba(108, 92, 231, 0.2);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-top: 20px;
-}
-
-.countdown-progress-bar {
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    border-radius: 4px;
-    animation: progressShrink 2s linear;
-}
-
-/* Pregunta y opciones */
-#question-text {
-    font-size: 1.3rem;
-    margin-bottom: 25px;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.7);
-    border-radius: 15px;
-    border-left: 5px solid var(--primary);
-}
-
-#options {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.option {
-    padding: 15px;
-    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-    color: white;
-    border-radius: 15px;
-    font-size: 1rem;
-    font-weight: 500;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s;
-    position: relative;
-    overflow: hidden;
-}
-
-.option::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    transition: left 0.5s;
-}
-
-.option:hover::before {
-    left: 100%;
-}
-
-.option:hover {
-    transform: translateY(-5px);
-    -webkit-transform: translateY(-5px);
-    -moz-transform: translateY(-5px);
-}
-
-.option.correct {
-    background: linear-gradient(135deg, var(--success), #00b894);
-    animation: pulse 0.5s;
-}
-
-.option.incorrect {
-    background: linear-gradient(135deg, var(--danger), #d63031);
-    animation: shake 0.5s;
-}
-
-#result {
-    font-size: 1.2rem;
-    font-weight: 600;
-    margin-bottom: 20px;
-    padding: 15px;
-    border-radius: 15px;
-    text-align: center;
-    min-height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#result.correct {
-    background: linear-gradient(135deg, var(--success), #00b894);
-    color: white;
-}
-
-#result.incorrect {
-    background: linear-gradient(135deg, var(--danger), #d63031);
-    color: white;
-}
-
-/* Tabla de jugadores */
-.right-panel h3 {
-    font-size: 1.5rem;
-    margin-bottom: 20px;
-    color: var(--primary);
-    text-align: center;
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--light);
-}
-
-#players-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-#players-table th, #players-table td {
-    padding: 12px;
-    text-align: center;
-    border-bottom: 1px solid var(--light);
-}
-
-#players-table th {
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    color: white;
-    font-weight: 600;
-}
-
-#players-table tr:hover {
-    background: rgba(108, 92, 231, 0.1);
-}
-
-.life {
-    font-size: 1.5rem;
-    transition: all 0.3s;
-}
-
-.life.lost {
-    color: var(--danger);
-    animation: pulse 0.5s;
-}
-
-.remove-btn {
-    background: var(--danger);
-    color: white;
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-}
-
-/* Animaciones */
-.elimination-container, .winner-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 5000;
-    overflow: hidden;
-}
-
-.elimination-content, .winner-content {
-    text-align: center;
-    animation: fadeIn 1s ease-out;
-    position: relative;
-    z-index: 10;
-}
-
-.elimination-photo, .winner-photo {
-    width: 400px;
-    height: 400px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-bottom: 30px;
-}
-
-.elimination-photo {
-    border: 8px solid var(--danger);
-    box-shadow: 0 0 50px rgba(255, 118, 117, 0.8);
-}
-
-.winner-photo {
-    border: 8px solid var(--accent);
-    box-shadow: 0 0 50px rgba(253, 203, 110, 0.8);
-}
-
-.elimination-name, .winner-name {
-    font-size: 4rem;
-    font-weight: 700;
-    margin-bottom: 20px;
-    animation: pulse 1s infinite alternate;
-}
-
-.elimination-name {
-    color: white;
-    text-shadow: 0 0 20px rgba(255, 118, 117, 0.8);
-}
-
-.winner-name {
-    color: var(--accent);
-    text-shadow: 0 0 20px rgba(253, 203, 110, 0.8);
-}
-
-.elimination-message {
-    font-size: 2.5rem;
-    font-weight: 600;
-    color: var(--danger);
-    text-shadow: 0 0 15px rgba(255, 118, 117, 0.6);
-    margin-bottom: 30px;
-}
-
-.winner-message {
-    font-size: 3rem;
-    font-weight: 600;
-    color: white;
-    text-shadow: 0 0 15px rgba(253, 203, 110, 0.6);
-    margin-bottom: 30px;
-}
-
-.elimination-stats, .winner-stats {
-    font-size: 1.5rem;
-    color: white;
-    margin-bottom: 40px;
-}
-
-.continue-btn, .play-again-btn {
-    padding: 20px 40px;
-    font-size: 1.5rem;
-    border-radius: 50px;
-    animation: pulse 1.5s infinite;
-}
-
-.continue-btn {
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    color: white;
-}
-
-.play-again-btn {
-    background: linear-gradient(90deg, var(--success), #00b894);
-    color: white;
-}
-
-/* Partículas */
-.particles, .winner-particles {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    pointer-events: none;
-}
-
-.particle, .winner-particle {
-    position: absolute;
-    border-radius: 50%;
-    animation: particleFall 3s linear infinite;
-}
-
-.particle {
-    width: 10px;
-    height: 10px;
-    background: var(--danger);
-}
-
-.winner-particle {
-    width: 15px;
-    height: 15px;
-}
-
-/* Indicador de sonido */
-.sound-indicator {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 30px;
-    display: none;
-    align-items: center;
-    gap: 10px;
-    z-index: 10000;
-    animation: fadeIn 0.3s ease-out;
-}
-
-.sound-wave {
-    width: 3px;
-    height: 20px;
-    background: var(--accent);
-    border-radius: 3px;
-    animation: soundWave 0.5s infinite alternate;
-}
-
-.sound-wave:nth-child(2) { animation-delay: 0.1s; }
-.sound-wave:nth-child(3) { animation-delay: 0.2s; }
-.sound-wave:nth-child(4) { animation-delay: 0.3s; }
-
-/* Modal de login */
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-}
-
-.modal-content {
-    background: white;
-    border-radius: 20px;
-    padding: 40px;
-    max-width: 400px;
-    width: 90%;
-    animation: fadeIn 0.5s;
-}
-
-#login-modal h2 {
-    font-size: 2rem;
-    margin-bottom: 30px;
-    text-align: center;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-}
-
-.login-input {
-    width: 100%;
-    padding: 15px;
-    margin-bottom: 20px;
-    border: 2px solid var(--primary);
-    border-radius: 30px;
-    font-family: 'Fredoka', sans-serif;
-    background: rgba(255, 255, 255, 0.7);
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    outline: none;
-}
-
-.login-input:focus {
-    border-color: var(--secondary);
-    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-    -webkit-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-    -moz-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-}
-
-#login-btn {
-    width: 100%;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    color: white;
-    padding: 15px;
-    font-size: 1.1rem;
-    margin-bottom: 15px;
-}
-
-#cancel-login-btn {
-    width: 100%;
-    background: var(--light);
-    color: var(--dark);
-    padding: 15px;
-    font-size: 1.1rem;
-}
-
-/* Panel de administración */
-#admin-panel {
-    background: white;
-    border-radius: 20px;
-    padding: 40px;
-    max-width: 900px;
-    margin: 50px auto;
-    animation: fadeIn 0.5s;
-}
-
-#admin-panel h2 {
-    font-size: 2.5rem;
-    margin-bottom: 30px;
-    text-align: center;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-}
-
-.admin-tabs {
-    display: flex;
-    margin-bottom: 30px;
-    border-bottom: 2px solid var(--light);
-    flex-wrap: wrap;
-}
-
-.tab-btn {
-    flex: 1;
-    min-width: 150px;
-    padding: 15px;
-    background: none;
-    border: none;
-    border-bottom: 3px solid transparent;
-    font-family: 'Fredoka', sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--dark);
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.tab-btn.active {
-    border-bottom-color: var(--primary);
-    color: var(--primary);
-}
-
-.tab-content {
-    display: none;
-}
-
-.tab-content.active {
-    display: block;
-    animation: fadeIn 0.5s;
-}
-
-.question-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.form-input {
-    padding: 15px;
-    border: 2px solid var(--primary);
-    border-radius: 15px;
-    font-family: 'Fredoka', sans-serif;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    outline: none;
-}
-
-.form-input:focus {
-    border-color: var(--secondary);
-    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-    -webkit-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-    -moz-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-}
-
-.options-input {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-}
-
-.correct-select {
-    padding: 15px;
-    border: 2px solid var(--primary);
-    border-radius: 15px;
-    font-family: 'Fredoka', sans-serif;
-    background: white;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    outline: none;
-}
-
-.correct-select:focus {
-    border-color: var(--secondary);
-    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-    -webkit-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-    -moz-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-}
-
-#save-question-btn {
-    background: linear-gradient(90deg, var(--success), #00b894);
-    color: white;
-    padding: 15px;
-    font-size: 1.1rem;
-}
-
-#ai-generate-btn {
-    background: linear-gradient(90deg, #00b894, #55efc4);
-    color: white;
-    padding: 15px;
-    font-size: 1.1rem;
-    margin-bottom: 20px;
-    position: relative;
-    overflow: hidden;
-}
-
-#ai-generate-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    animation: shine 2s infinite;
-}
-
-.questions-list {
-    max-height: 400px;
-    overflow-y: auto;
-    border: 2px solid var(--light);
-    border-radius: 15px;
-    padding: 20px;
-}
-
-.question-item {
-    background: rgba(108, 92, 231, 0.1);
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 15px;
-    position: relative;
-}
-
-.question-item h4 {
-    color: var(--primary);
-    margin-bottom: 10px;
-    font-size: 1.2rem;
-}
-
-.question-item p {
-    margin: 5px 0;
-    padding-left: 20px;
-    position: relative;
-}
-
-.question-item p.correct::before {
-    content: '✓';
-    position: absolute;
-    left: 0;
-    color: var(--success);
-    font-weight: bold;
-}
-
-.delete-question-btn {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: var(--danger);
-    color: white;
-    padding: 8px 15px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-}
-
-#logout-btn {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: var(--danger);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 30px;
-}
-
-/* Fotos de jugadores */
-.photos-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
-}
-
-.photo-card {
-    background: rgba(108, 92, 231, 0.1);
-    border-radius: 15px;
-    padding: 15px;
-    text-align: center;
-    transition: all 0.3s;
-}
-
-.photo-card:hover {
-    transform: translateY(-5px);
-    -webkit-transform: translateY(-5px);
-    -moz-transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(108, 92, 231, 0.2);
-    -webkit-box-shadow: 0 8px 20px rgba(108, 92, 231, 0.2);
-    -moz-box-shadow: 0 8px 20px rgba(108, 92, 231, 0.2);
-}
-
-.photo-preview {
-    width: 120px;
-    height: 120px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-bottom: 10px;
-    border: 3px solid var(--primary);
-}
-
-.player-name-input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 2px solid var(--primary);
-    border-radius: 10px;
-    font-family: 'Fredoka', sans-serif;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    outline: none;
-}
-
-.player-name-input:focus {
-    border-color: var(--secondary);
-    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-    -webkit-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-    -moz-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-}
-
-.photo-upload-btn, .delete-photo-btn {
-    width: 100%;
-    padding: 10px;
-    border-radius: 10px;
-    font-family: 'Fredoka', sans-serif;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.photo-upload-btn {
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    color: white;
-    margin-bottom: 10px;
-}
-
-.delete-photo-btn {
-    background: var(--danger);
-    color: white;
-    font-size: 0.8rem;
-}
-
-.add-photo-card {
-    background: rgba(108, 92, 231, 0.05);
-    border: 2px dashed var(--primary);
-    border-radius: 15px;
-    padding: 30px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    min-height: 250px;
-}
-
-.add-photo-card:hover {
-    background: rgba(108, 92, 231, 0.1);
-    transform: translateY(-5px);
-    -webkit-transform: translateY(-5px);
-    -moz-transform: translateY(-5px);
-}
-
-.add-photo-card i {
-    font-size: 3rem;
-    color: var(--primary);
-    margin-bottom: 10px;
-}
-
-/* Configuración de sonido */
-.sound-settings {
-    background: rgba(108, 92, 231, 0.05);
-    border-radius: 15px;
-    padding: 25px;
-    margin-bottom: 20px;
-}
-
-.sound-settings h3 {
-    color: var(--primary);
-    margin-bottom: 20px;
-    font-size: 1.3rem;
-    text-align: center;
-}
-
-.voice-selector {
-    margin-bottom: 20px;
-}
-
-.voice-selector label {
-    display: block;
-    margin-bottom: 10px;
-    font-weight: 600;
-    color: var(--dark);
-}
-
-.voice-select {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid var(--primary);
-    border-radius: 15px;
-    font-family: 'Fredoka', sans-serif;
-    background: white;
-    margin-bottom: 10px;
-    max-height: 200px;
-    overflow-y: auto;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    outline: none;
-}
-
-.voice-select:focus {
-    border-color: var(--secondary);
-    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-    -webkit-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-    -moz-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-}
-
-.message-input {
-    width: 100%;
-    padding: 15px;
-    border: 2px solid var(--primary);
-    border-radius: 15px;
-    font-family: 'Fredoka', sans-serif;
-    margin-bottom: 15px;
-    min-height: 80px;
-    resize: vertical;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    outline: none;
-}
-
-.message-input:focus {
-    border-color: var(--secondary);
-    box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-    -webkit-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-    -moz-box-shadow: 0 0 0 3px rgba(253, 121, 168, 0.2);
-}
-
-.test-sound-btn {
-    width: 100%;
-    background: linear-gradient(90deg, var(--accent), #f39c12);
-    color: white;
-    padding: 12px;
-    font-size: 1rem;
-    margin-bottom: 15px;
-}
-
-.save-sound-btn {
-    width: 100%;
-    background: linear-gradient(90deg, var(--success), #00b894);
-    color: white;
-    padding: 15px;
-    font-size: 1.1rem;
-}
-
-.sound-preview {
-    background: rgba(253, 203, 110, 0.1);
-    border-radius: 10px;
-    padding: 15px;
-    margin-top: 15px;
-    text-align: center;
-    color: var(--dark);
-}
-
-/* Animación de carga de IA */
-.ai-loading {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255,255,255,.3);
-    border-radius: 50%;
-    border-top-color: white;
-    animation: spin 1s ease-in-out infinite;
-}
-
-/* Mejoras para el modo oscuro en navegadores que lo soportan */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --card: rgba(45, 52, 54, 0.9);
-        --light: #636e72;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Champions - Juego Multijugador Profesional</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     
-    body {
-        color: #dfe6e9;
-    }
-    
-    input, textarea, select {
-        background: rgba(45, 52, 54, 0.7);
-        color: #dfe6e9;
-    }
-}
+    <style>
+        /* ===== VARIABLES GLOBALES ===== */
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --accent-color: #e74c3c;
+            --warning-color: #f39c12;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+            --bg-gradient: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --border-radius: 12px;
+        }
 
-/* Mejoras para dispositivos táctiles */
-@media (hover: none) {
-    button:hover {
-        transform: none;
-        -webkit-transform: none;
-        -moz-transform: none;
-    }
-    
-    button:active {
-        transform: scale(0.95);
-        -webkit-transform: scale(0.95);
-        -moz-transform: scale(0.95);
-    }
-}
+        /* ===== ESTILOS BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-/* Diseño responsivo */
-@media (max-width: 768px) {
-    .container {
-        flex-direction: column;
-    }
-    
-    #options {
-        grid-template-columns: 1fr;
-    }
-    
-    h1 {
-        font-size: 2rem;
-    }
-    
-    header p {
-        font-size: 1rem;
-    }
-    
-    .admin-btn, .sound-toggle, .reset-game-btn {
-        position: static;
-        margin-top: 10px;
-        display: block;
-        width: 100%;
-    }
-    
-    .options-input {
-        grid-template-columns: 1fr;
-    }
-    
-    .photos-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    }
-    
-    .elimination-photo, .winner-photo {
-        width: 250px;
-        height: 250px;
-    }
-    
-    .elimination-name, .winner-name {
-        font-size: 2.5rem;
-    }
-    
-    .elimination-message {
-        font-size: 1.8rem;
-    }
-    
-    .winner-message {
-        font-size: 2rem;
-    }
-    
-    .countdown-number {
-        font-size: 5rem;
-    }
-    
-    #current-player {
-        font-size: 1.5rem;
-    }
-}
-</style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700; /* Todas las letras en negrita */
+            background: var(--bg-gradient);
+            color: var(--dark-color);
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Forzar negrita en todos los elementos de texto */
+        h1, h2, h3, h4, h5, h6, p, span, div, button, input, textarea, select, label, td, th, li, a {
+            font-weight: 700 !important;
+        }
+
+        /* Títulos más gruesos */
+        h1 {
+            font-weight: 900 !important;
+        }
+
+        h2 {
+            font-weight: 800 !important;
+        }
+
+        /* ===== COMPONENTES ===== */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 30px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 800 !important; /* Botones más gruesos */
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: var(--border-radius);
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700 !important; /* Inputs en negrita */
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        /* ===== ANIMACIONES ===== */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        /* ===== CABECERA ===== */
+        header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 900 !important; /* Título principal extra grueso */
+            color: white;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            margin-bottom: 10px;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            font-weight: 700 !important; /* Subtítulo en negrita */
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 20px;
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        /* ===== INDICADOR DE CONEXIÓN ===== */
+        .connection-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 700 !important; /* Indicador en negrita */
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+
+        .connection-indicator.connected {
+            background: rgba(46, 204, 113, 0.9);
+        }
+
+        .connection-indicator.disconnected {
+            background: rgba(231, 76, 60, 0.9);
+        }
+
+        /* ===== LAYOUT PRINCIPAL ===== */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        /* ===== PANEL DE JUEGO ===== */
+        .game-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .player-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .player-input {
+            flex: 1;
+        }
+
+        .current-player {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 800 !important; /* Jugador actual más grueso */
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ===== TEMPORIZADOR ===== */
+        .countdown-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        .countdown-number {
+            font-size: 6rem;
+            font-weight: 900 !important; /* Números del countdown extra gruesos */
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .countdown-progress {
+            width: 100%;
+            height: 8px;
+            background: rgba(52, 152, 219, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .countdown-progress-bar {
+            height: 100%;
+            background: var(--primary-color);
+            border-radius: 4px;
+            animation: progressShrink 2s linear;
+        }
+
+        @keyframes progressShrink {
+            0% { width: 100%; }
+            100% { width: 0%; }
+        }
+
+        /* ===== PREGUNTA Y OPCIONES ===== */
+        .question-container {
+            display: none;
+        }
+
+        .question-text {
+            font-size: 1.4rem;
+            font-weight: 800 !important; /* Pregunta más gruesa */
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(52, 152, 219, 0.1);
+            border-left: 5px solid var(--primary-color);
+            border-radius: var(--border-radius);
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .option-btn {
+            padding: 15px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 800 !important; /* Opciones más gruesas */
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-btn:hover {
+            background: rgba(52, 152, 219, 0.1);
+            border-color: var(--primary-color);
+            transform: translateY(-3px);
+        }
+
+        .option-btn.correct {
+            background: var(--secondary-color);
+            color: white;
+            border-color: var(--secondary-color);
+        }
+
+        .option-btn.incorrect {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .result-container {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 800 !important; /* Resultados más gruesos */
+            display: none;
+        }
+
+        .result-container.correct {
+            background: rgba(46, 204, 113, 0.2);
+            color: var(--secondary-color);
+        }
+
+        .result-container.incorrect {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--accent-color);
+        }
+
+        /* ===== PANEL DE JUGADORES ===== */
+        .players-panel h3 {
+            font-size: 1.5rem;
+            font-weight: 800 !important; /* Título del panel más grueso */
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .players-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .players-table th, .players-table td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            font-weight: 700 !important; /* Texto de tabla en negrita */
+        }
+
+        .players-table th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 800 !important; /* Cabeceras de tabla más gruesas */
+        }
+
+        .players-table tr:hover {
+            background: rgba(52, 152, 219, 0.05);
+        }
+
+        .life-indicator {
+            font-size: 1.2rem;
+            font-weight: 700 !important;
+        }
+
+        .life-indicator.lost {
+            color: var(--accent-color);
+        }
+
+        /* ===== MODALES ===== */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            font-weight: 700 !important;
+            cursor: pointer;
+            color: #777;
+        }
+
+        .modal-close:hover {
+            color: var(--accent-color);
+        }
+
+        /* ===== PANEL DE ADMINISTRACIÓN ===== */
+        .admin-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 800 !important; /* Tabs más gruesos */
+            color: var(--dark-color);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .tab-btn.active {
+            border-bottom-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        .question-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .options-input {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .questions-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: var(--border-radius);
+            padding: 15px;
+        }
+
+        .question-item {
+            background: rgba(52, 152, 219, 0.05);
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .question-item h4 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-weight: 800 !important; /* Títulos de preguntas más gruesos */
+        }
+
+        .question-item p {
+            margin: 5px 0;
+            padding-left: 20px;
+            position: relative;
+            font-weight: 700 !important; /* Opciones de preguntas en negrita */
+        }
+
+        .question-item p.correct::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--secondary-color);
+            font-weight: 900 !important;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--accent-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700 !important;
+        }
+
+        /* ===== ANIMACIONES ESPECIALES ===== */
+        .elimination-container, .winner-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            overflow: hidden;
+        }
+
+        .elimination-content, .winner-content {
+            text-align: center;
+            animation: fadeIn 1s ease-out;
+            position: relative;
+            z-index: 10;
+        }
+
+        .player-photo {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 20px;
+            border: 5px solid var(--accent-color);
+        }
+
+        .winner-photo {
+            border-color: var(--warning-color);
+        }
+
+        .player-name {
+            font-size: 3rem;
+            font-weight: 900 !important; /* Nombres de jugadores extra gruesos */
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .elimination-message {
+            font-size: 2rem;
+            font-weight: 800 !important; /* Mensajes de eliminación más gruesos */
+            color: var(--accent-color);
+            margin-bottom: 20px;
+        }
+
+        .winner-message {
+            font-size: 2.5rem;
+            font-weight: 800 !important; /* Mensajes de victoria más gruesos */
+            color: var(--warning-color);
+            margin-bottom: 20px;
+        }
+
+        .player-stats {
+            font-size: 1.2rem;
+            font-weight: 700 !important; /* Estadísticas en negrita */
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        /* ===== PARTICULAS ===== */
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            animation: particleFall 3s linear infinite;
+        }
+
+        @keyframes particleFall {
+            0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* ===== INDICADOR DE SONIDO ===== */
+        .sound-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            font-weight: 700 !important; /* Indicador de sonido en negrita */
+        }
+
+        .sound-wave {
+            width: 3px;
+            height: 20px;
+            background: var(--warning-color);
+            border-radius: 3px;
+            animation: soundWave 0.5s infinite alternate;
+        }
+
+        .sound-wave:nth-child(2) { animation-delay: 0.1s; }
+        .sound-wave:nth-child(3) { animation-delay: 0.2s; }
+        .sound-wave:nth-child(4) { animation-delay: 0.3s; }
+
+        @keyframes soundWave {
+            0% { height: 10px; }
+            100% { height: 20px; }
+        }
+
+        /* ===== DISEÑO RESPONSIVO ===== */
+        @media (max-width: 992px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .header-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .player-controls {
+                flex-direction: column;
+            }
+            
+            .options-input {
+                grid-template-columns: 1fr;
+            }
+            
+            .admin-tabs {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .tagline {
+                font-size: 1rem;
+            }
+            
+            .current-player {
+                font-size: 1.2rem;
+                min-height: 80px;
+            }
+            
+            .countdown-number {
+                font-size: 4rem;
+            }
+            
+            .question-text {
+                font-size: 1.1rem;
+            }
+            
+            .player-name {
+                font-size: 2rem;
+            }
+            
+            .elimination-message {
+                font-size: 1.5rem;
+            }
+            
+            .winner-message {
+                font-size: 1.8rem;
+            }
+            
+            .player-photo {
+                width: 200px;
+                height: 200px;
+            }
+        }
+
+        /* ===== FONDO ANIMADO ===== */
+        .bg-animation {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-animation span {
+            position: absolute;
+            display: block;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            animation: move 25s linear infinite;
+            bottom: -150px;
+        }
+
+        @keyframes move {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; border-radius: 0; }
+            100% { transform: translateY(-1000px) rotate(720deg); opacity: 0; border-radius: 50%; }
+        }
+
+        .bg-animation span:nth-child(1) { left: 25%; width: 80px; height: 80px; animation-delay: 0s; }
+        .bg-animation span:nth-child(2) { left: 10%; width: 20px; height: 20px; animation-delay: 2s; animation-duration: 12s; }
+        .bg-animation span:nth-child(3) { left: 70%; width: 20px; height: 20px; animation-delay: 4s; }
+        .bg-animation span:nth-child(4) { left: 40%; width: 60px; height: 60px; animation-delay: 0s; animation-duration: 18s; }
+        .bg-animation span:nth-child(5) { left: 65%; width: 20px; height: 20px; animation-delay: 0s; }
+        .bg-animation span:nth-child(6) { left: 75%; width: 110px; height: 110px; animation-delay: 3s; }
+        .bg-animation span:nth-child(7) { left: 35%; width: 150px; height: 150px; animation-delay: 7s; }
+        .bg-animation span:nth-child(8) { left: 50%; width: 25px; height: 25px; animation-delay: 15s; animation-duration: 45s; }
+        .bg-animation span:nth-child(9) { left: 20%; width: 15px; height: 15px; animation-delay: 2s; animation-duration: 35s; }
+        .bg-animation span:nth-child(10) { left: 85%; width: 150px; height: 150px; animation-delay: 0s; animation-duration: 11s; }
+    </style>
 </head>
 <body>
-<!-- Indicador de conexión -->
-<div class="connection-indicator" id="connection-indicator">
-    <i class="fas fa-wifi"></i>
-    <span id="connection-text">Conectando...</span>
-</div>
+    <!-- Fondo animado -->
+    <div class="bg-animation">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
 
-<!-- Fondo animado -->
-<div class="bg-animation">
-    <span></span>
-    <span></span>
-    <span></span>
-    <span></span>
-    <span></span>
-    <span></span>
-    <span></span>
-</div>
+    <!-- Indicador de conexión -->
+    <div class="connection-indicator" id="connection-indicator">
+        <i class="fas fa-wifi"></i>
+        <span id="connection-text">Conectando...</span>
+    </div>
 
-<!-- Header -->
-<header>
-    <h1><i class="fas fa-trophy"></i> Quiz Champions</h1>
-    <p>¡Demuestra quién es el campeón del conocimiento!</p>
-    <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">
-        <i class="fas fa-volume-up"></i> <span id="sound-text">Sonido ON</span>
-    </button>
-    <button class="reset-game-btn" onclick="confirmResetGame()">
-        <i class="fas fa-redo"></i> Reiniciar Juego
-    </button>
-    <button class="admin-btn" onclick="showLogin()"><i class="fas fa-user-shield"></i> Administrador</button>
-</header>
-
-<!-- Contenedor principal -->
-<div class="container">
-    <div class="left-panel">
-        <div id="controls">
-            <input type="text" id="new-player" placeholder="Nombre del jugador">
-            <button id="add-player-btn" onclick="addPlayer()"><i class="fas fa-user-plus"></i> Agregar</button>
-        </div>
-
-        <div id="current-player" class="fade"></div>
-        
-        <!-- Temporizador -->
-        <div id="countdown-container" style="display: none;">
-            <div class="countdown-number" id="countdown-number">2</div>
-            <div class="countdown-text">¡Prepárate!</div>
-            <div class="countdown-progress">
-                <div class="countdown-progress-bar" id="countdown-progress"></div>
+    <!-- Cabecera -->
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-trophy"></i> Quiz Champions</h1>
+            <p class="tagline">¡Demuestra quién es el campeón del conocimiento!</p>
+            <div class="header-controls">
+                <button class="btn btn-primary" id="sound-toggle" onclick="toggleSound()">
+                    <i class="fas fa-volume-up"></i> <span id="sound-text">Sonido ON</span>
+                </button>
+                <button class="btn btn-warning" onclick="confirmResetGame()">
+                    <i class="fas fa-redo"></i> Reiniciar Juego
+                </button>
+                <button class="btn btn-secondary" onclick="showLogin()">
+                    <i class="fas fa-user-shield"></i> Administrador
+                </button>
             </div>
         </div>
+    </header>
 
-        <div id="question-text" class="fade" style="display: none;"></div>
-        <div id="options" style="display: none;"></div>
-        <div id="result" class="fade" style="display: none;"></div>
-    </div>
-
-    <div class="right-panel">
-        <h3><i class="fas fa-users"></i> Jugadores</h3>
-        <table id="players-table">
-            <thead>
-                <tr>
-                    <th>Jugador</th>
-                    <th>Vidas</th>
-                    <th>Puntos</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            <tbody id="players-body"></tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Indicador de sonido -->
-<div class="sound-indicator" id="sound-indicator">
-    <div class="sound-wave"></div>
-    <div class="sound-wave"></div>
-    <div class="sound-wave"></div>
-    <div class="sound-wave"></div>
-    <span>Reproduciendo sonido...</span>
-</div>
-
-<!-- Animación de eliminación -->
-<div id="elimination-container" class="elimination-container">
-    <div class="particles" id="particles"></div>
-    <div class="elimination-content">
-        <img id="elimination-photo" class="elimination-photo" src="https://picsum.photos/seed/default/400/400.jpg" alt="Player">
-        <div id="elimination-name" class="elimination-name">JUGADOR</div>
-        <div class="elimination-message" id="elimination-message">¡HAS SIDO ELIMINADO!</div>
-        <div id="elimination-stats" class="elimination-stats">Respondiste 0 preguntas correctamente</div>
-        <button class="continue-btn" onclick="closeElimination()">Continuar</button>
-    </div>
-</div>
-
-<!-- Animación de victoria -->
-<div id="winner-container" class="winner-container">
-    <div class="winner-particles" id="winner-particles"></div>
-    <div class="winner-content">
-        <img id="winner-photo" class="winner-photo" src="https://picsum.photos/seed/winner/400/400.jpg" alt="Winner">
-        <div id="winner-name" class="winner-name">GANADOR</div>
-        <div class="winner-message" id="winner-message">¡WE ARE THE CHAMPIONS!</div>
-        <div id="winner-stats" class="winner-stats">Eres el campeón con 0 puntos</div>
-        <button class="play-again-btn" onclick="resetGame()"><i class="fas fa-redo"></i> Jugar de Nuevo</button>
-    </div>
-</div>
-
-<!-- Modal de login -->
-<div id="login-container" class="modal">
-    <div id="login-modal" class="modal-content">
-        <h2><i class="fas fa-lock"></i> Acceso Administrador</h2>
-        <input type="text" id="username" class="login-input" placeholder="Usuario">
-        <input type="password" id="password" class="login-input" placeholder="Contraseña">
-        <button id="login-btn" onclick="login()"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</button>
-        <button id="cancel-login-btn" onclick="hideLogin()"><i class="fas fa-times"></i> Cancelar</button>
-    </div>
-</div>
-
-<!-- Panel de administración -->
-<div id="admin-container" class="modal">
-    <div id="admin-panel" class="modal-content" style="max-width: 900px;">
-        <button id="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
-        <h2><i class="fas fa-cog"></i> Panel de Administración</h2>
-        
-        <div class="admin-tabs">
-            <button class="tab-btn active" onclick="switchTab('add')"><i class="fas fa-plus-circle"></i> Agregar Pregunta</button>
-            <button class="tab-btn" onclick="switchTab('view')"><i class="fas fa-list"></i> Ver Preguntas</button>
-            <button class="tab-btn" onclick="switchTab('photos')"><i class="fas fa-camera"></i> Fotos Jugadores</button>
-            <button class="tab-btn" onclick="switchTab('sounds')"><i class="fas fa-microphone"></i> Configuración de Sonido</button>
-        </div>
-        
-        <div id="add-tab" class="tab-content active">
-            <button id="ai-generate-btn" onclick="generateAIQuestion()">
-                <i class="fas fa-robot"></i> <span id="ai-btn-text">Generar con IA</span>
-            </button>
-            
-            <form class="question-form" onsubmit="saveQuestion(event)">
-                <input type="text" id="new-question" class="form-input" placeholder="Escribe la pregunta..." required>
-                
-                <div class="options-input">
-                    <input type="text" id="option1" class="form-input" placeholder="Opción 1" required>
-                    <input type="text" id="option2" class="form-input" placeholder="Opción 2" required>
-                    <input type="text" id="option3" class="form-input" placeholder="Opción 3" required>
-                    <input type="text" id="option4" class="form-input" placeholder="Opción 4" required>
+    <!-- Contenido principal -->
+    <div class="container">
+        <div class="main-layout">
+            <!-- Panel de juego -->
+            <div class="game-panel">
+                <!-- Controles de jugador -->
+                <div class="card">
+                    <div class="player-controls">
+                        <input type="text" id="new-player" class="form-control player-input" placeholder="Nombre del jugador">
+                        <button class="btn btn-primary" onclick="addPlayer()">
+                            <i class="fas fa-user-plus"></i> Agregar
+                        </button>
+                    </div>
                 </div>
-                
-                <select id="correct-answer" class="correct-select" required>
-                    <option value="">Selecciona la respuesta correcta</option>
-                    <option value="0">Opción 1</option>
-                    <option value="1">Opción 2</option>
-                    <option value="2">Opción 3</option>
-                    <option value="3">Opción 4</option>
-                </select>
-                
-                <button type="submit" id="save-question-btn"><i class="fas fa-save"></i> Guardar Pregunta</button>
+
+                <!-- Jugador actual -->
+                <div id="current-player" class="current-player fade-in"></div>
+
+                <!-- Temporizador -->
+                <div id="countdown-container" class="countdown-container">
+                    <div class="countdown-number" id="countdown-number">3</div>
+                    <div class="countdown-progress">
+                        <div class="countdown-progress-bar" id="countdown-progress"></div>
+                    </div>
+                </div>
+
+                <!-- Pregunta -->
+                <div id="question-container" class="question-container">
+                    <div id="question-text" class="question-text"></div>
+                    <div id="options" class="options-grid"></div>
+                    <div id="result" class="result-container"></div>
+                </div>
+            </div>
+
+            <!-- Panel de jugadores -->
+            <div class="players-panel card">
+                <h3><i class="fas fa-users"></i> Jugadores</h3>
+                <table class="players-table">
+                    <thead>
+                        <tr>
+                            <th>Jugador</th>
+                            <th>Vidas</th>
+                            <th>Puntos</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="players-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicador de sonido -->
+    <div class="sound-indicator" id="sound-indicator">
+        <div class="sound-wave"></div>
+        <div class="sound-wave"></div>
+        <div class="sound-wave"></div>
+        <div class="sound-wave"></div>
+        <span>Reproduciendo sonido...</span>
+    </div>
+
+    <!-- Animación de eliminación -->
+    <div id="elimination-container" class="elimination-container">
+        <div class="particles" id="particles"></div>
+        <div class="elimination-content">
+            <img id="elimination-photo" class="player-photo" src="https://picsum.photos/seed/default/300/300.jpg" alt="Player">
+            <div id="elimination-name" class="player-name">JUGADOR</div>
+            <div class="elimination-message" id="elimination-message">¡HAS SIDO ELIMINADO!</div>
+            <div id="elimination-stats" class="player-stats">Respondiste 0 preguntas correctamente</div>
+            <button class="btn btn-primary" onclick="closeElimination()">Continuar</button>
+        </div>
+    </div>
+
+    <!-- Animación de victoria -->
+    <div id="winner-container" class="winner-container">
+        <div class="particles" id="winner-particles"></div>
+        <div class="winner-content">
+            <img id="winner-photo" class="player-photo winner-photo" src="https://picsum.photos/seed/winner/300/300.jpg" alt="Winner">
+            <div id="winner-name" class="player-name">GANADOR</div>
+            <div class="winner-message" id="winner-message">¡WE ARE THE CHAMPIONS!</div>
+            <div id="winner-stats" class="player-stats">Eres el campeón con 0 puntos</div>
+            <button class="btn btn-warning" onclick="resetGame()">
+                <i class="fas fa-redo"></i> Jugar de Nuevo
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal de login -->
+    <div id="login-container" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="hideLogin()">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2><i class="fas fa-lock"></i> Acceso Administrador</h2>
+            <form onsubmit="login(event)">
+                <input type="text" id="username" class="form-control" placeholder="Usuario" required>
+                <input type="password" id="password" class="form-control" placeholder="Contraseña" required>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">
+                    <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+                </button>
             </form>
         </div>
-        
-        <div id="view-tab" class="tab-content">
-            <div class="questions-list" id="questions-list"></div>
-        </div>
-        
-        <div id="photos-tab" class="tab-content">
-            <h3 style="text-align: center; margin-bottom: 20px; color: var(--primary);">
-                <i class="fas fa-camera"></i> Gestión de Fotos de Jugadores
-            </h3>
-            <div class="photos-grid" id="photos-grid">
-                <div class="add-photo-card" onclick="document.getElementById('photo-input').click()">
-                    <i class="fas fa-plus-circle"></i>
-                    <p>Agregar Foto</p>
-                </div>
+    </div>
+
+    <!-- Panel de administración -->
+    <div id="admin-container" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <button class="modal-close" onclick="logout()">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2><i class="fas fa-cog"></i> Panel de Administración</h2>
+            
+            <div class="admin-tabs">
+                <button class="tab-btn active" onclick="switchTab('add')">
+                    <i class="fas fa-plus-circle"></i> Agregar Pregunta
+                </button>
+                <button class="tab-btn" onclick="switchTab('view')">
+                    <i class="fas fa-list"></i> Ver Preguntas
+                </button>
+                <button class="tab-btn" onclick="switchTab('sounds')">
+                    <i class="fas fa-microphone"></i> Configuración de Sonido
+                </button>
             </div>
-            <input type="file" id="photo-input" accept="image/*" onchange="handlePhotoUpload(event)" style="display: none;">
-        </div>
-        
-        <div id="sounds-tab" class="tab-content">
-            <div class="sound-settings">
-                <h3><i class="fas fa-microphone"></i> Configuración de Sonido</h3>
-                
-                <div class="voice-selector">
-                    <label for="voice-select">Selecciona la voz para los anuncios:</label>
-                    <select id="voice-select" class="voice-select" onchange="updateVoiceSelection()">
-                        <option value="">Cargando voces...</option>
-                    </select>
-                </div>
-                
-                <div class="voice-selector">
-                    <label>Mensaje de Eliminación (usa {nombre} para el jugador):</label>
-                    <textarea id="elimination-message-input" class="message-input" placeholder="Ej: Estas eliminado mi wawita">Estas eliminado mi wawita</textarea>
-                    <button class="test-sound-btn" onclick="testEliminationSound()">
-                        <i class="fas fa-play"></i> Probar Mensaje de Eliminación
-                    </button>
-                </div>
-                
-                <div class="voice-selector">
-                    <label>Mensaje de Victoria (usa {nombre} para el jugador):</label>
-                    <textarea id="victory-message-input" class="message-input" placeholder="Ej: Felicidades Ganastes mi wawita">Felicidades Ganastes mi wawita</textarea>
-                    <button class="test-sound-btn" onclick="testVictorySound()">
-                        <i class="fas fa-play"></i> Probar Mensaje de Victoria
-                    </button>
-                </div>
-                
-                <div class="voice-selector">
-                    <label>Mensaje de Respuesta Incorrecta:</label>
-                    <textarea id="wrong-answer-input" class="message-input" placeholder="Ej: Respuesta incorrecta. La respuesta correcta era {respuesta}">Respuesta incorrecta. La respuesta correcta era {respuesta}</textarea>
-                    <button class="test-sound-btn" onclick="testWrongAnswerSound()">
-                        <i class="fas fa-play"></i> Probar Mensaje de Respuesta Incorrecta
-                    </button>
-                </div>
-                
-                <button class="save-sound-btn" onclick="saveSoundSettings()">
-                    <i class="fas fa-save"></i> Guardar Configuración de Sonido
+            
+            <div id="add-tab" class="tab-content active">
+                <button id="ai-generate-btn" class="btn btn-secondary" onclick="generateAIQuestion()" style="width: 100%; margin-bottom: 20px;">
+                    <i class="fas fa-robot"></i> <span id="ai-btn-text">Generar con IA</span>
                 </button>
                 
-                <div class="sound-preview" id="sound-preview">
-                    <i class="fas fa-info-circle"></i> Los mensajes se guardarán y se usarán en el juego
+                <form class="question-form" onsubmit="saveQuestion(event)">
+                    <input type="text" id="new-question" class="form-control" placeholder="Escribe la pregunta..." required>
+                    
+                    <div class="options-input">
+                        <input type="text" id="option1" class="form-control" placeholder="Opción 1" required>
+                        <input type="text" id="option2" class="form-control" placeholder="Opción 2" required>
+                        <input type="text" id="option3" class="form-control" placeholder="Opción 3" required>
+                        <input type="text" id="option4" class="form-control" placeholder="Opción 4" required>
+                    </div>
+                    
+                    <select id="correct-answer" class="form-control" required>
+                        <option value="">Selecciona la respuesta correcta</option>
+                        <option value="0">Opción 1</option>
+                        <option value="1">Opción 2</option>
+                        <option value="2">Opción 3</option>
+                        <option value="3">Opción 4</option>
+                    </select>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Guardar Pregunta
+                    </button>
+                </form>
+            </div>
+            
+            <div id="view-tab" class="tab-content">
+                <div class="questions-list" id="questions-list"></div>
+            </div>
+            
+            <div id="sounds-tab" class="tab-content">
+                <div class="card">
+                    <h3><i class="fas fa-microphone"></i> Configuración de Sonido</h3>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label for="voice-select">Selecciona la voz para los anuncios:</label>
+                        <select id="voice-select" class="form-control" onchange="updateVoiceSelection()">
+                            <option value="">Cargando voces...</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label for="elimination-message-input">Mensaje de Eliminación (usa {nombre} para el jugador):</label>
+                        <textarea id="elimination-message-input" class="form-control" rows="3">Estas eliminado mi wawita</textarea>
+                        <button class="btn btn-secondary" onclick="testEliminationSound()" style="margin-top: 10px;">
+                            <i class="fas fa-play"></i> Probar Mensaje de Eliminación
+                        </button>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label for="victory-message-input">Mensaje de Victoria (usa {nombre} para el jugador):</label>
+                        <textarea id="victory-message-input" class="form-control" rows="3">Felicidades Ganastes mi wawita</textarea>
+                        <button class="btn btn-secondary" onclick="testVictorySound()" style="margin-top: 10px;">
+                            <i class="fas fa-play"></i> Probar Mensaje de Victoria
+                        </button>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label for="wrong-answer-input">Mensaje de Respuesta Incorrecta:</label>
+                        <textarea id="wrong-answer-input" class="form-control" rows="3">Respuesta incorrecta. La respuesta correcta era {respuesta}</textarea>
+                        <button class="btn btn-secondary" onclick="testWrongAnswerSound()" style="margin-top: 10px;">
+                            <i class="fas fa-play"></i> Probar Mensaje de Respuesta Incorrecta
+                        </button>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="saveSoundSettings()" style="width: 100%;">
+                        <i class="fas fa-save"></i> Guardar Configuración de Sonido
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-// ====== CONFIGURACIÓN DE FIREBASE ======
-const firebaseConfig = {
-    databaseURL: "https://juego-24648-default-rtdb.firebaseio.com/"
-};
+    <script>
+        // ===== CONFIGURACIÓN DE FIREBASE =====
+        const firebaseConfig = {
+            databaseURL: "https://juego-24648-default-rtdb.firebaseio.com/"
+        };
 
-// Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
-// ====== CONFIGURACIÓN INICIAL ======
-let players = [
-    {name:"Jonathan", lives:3, correct:0},
-    {name:"Angelino", lives:3, correct:0},
-    {name:"Andres", lives:3, correct:0},
-    {name:"Leo", lives:3, correct:0},
-    {name:"Carlos", lives:3, correct:0},
-    {name:"Ingrid", lives:3, correct:0},
-    {name:"Angela", lives:3, correct:0},
-    {name:"Ariana", lives:3, correct:0},
-];
+        // ===== VARIABLES GLOBALES =====
+        let players = [
+            {name:"Jonathan", lives:3, correct:0},
+            {name:"Angelino", lives:3, correct:0},
+            {name:"Andres", lives:3, correct:0},
+            {name:"Leo", lives:3, correct:0},
+            {name:"Carlos", lives:3, correct:0},
+            {name:"Ingrid", lives:3, correct:0},
+            {name:"Angela", lives:3, correct:0},
+            {name:"Ariana", lives:3, correct:0},
+        ];
 
-let currentPlayerIndex = 0;
-let questionAnswered = false;
-let isAdminLoggedIn = false;
-let playerPhotos = {};
-let soundEnabled = true;
-let currentQuestion = null;
-let countdownInterval = null;
-let isOnline = false;
-let syncInProgress = false;
-let initialLoadComplete = false;
+        let currentPlayerIndex = 0;
+        let questionAnswered = false;
+        let isAdminLoggedIn = false;
+        let soundEnabled = true;
+        let currentQuestion = null;
+        let countdownInterval = null;
+        let isOnline = false;
+        let syncInProgress = false;
+        let initialLoadComplete = false;
 
-// Cargar configuración de sonido desde localStorage como respaldo
-let soundSettings = {
-    selectedVoice: null,
-    eliminationMessage: "Estas eliminado mi wawita",
-    victoryMessage: "Felicidades Ganastes mi wawita",
-    wrongAnswerMessage: "Respuesta incorrecta. La respuesta correcta era {respuesta}"
-};
+        // Configuración de sonido
+        let soundSettings = {
+            selectedVoice: null,
+            eliminationMessage: "Estas eliminado mi wawita",
+            victoryMessage: "Felicidades Ganastes mi wawita",
+            wrongAnswerMessage: "Respuesta incorrecta. La respuesta correcta era {respuesta}"
+        };
 
-// Cargar preguntas guardadas en localStorage como respaldo
-let questions = [
-    { q:"¿Cuál es la capital de Francia?", a:["Madrid","París","Roma","Berlín"], correct:1 },
-    { q:"¿Quién escribió 'Cien años de soledad'?", a:["Gabriel García Márquez","Mario Vargas Llosa","Pablo Neruda","Julio Cortázar"], correct:0 },
-    { q:"¿Cuál es el planeta más grande del sistema solar?", a:["Saturno","Júpiter","Marte","Neptuno"], correct:1 },
-    { q:"¿En qué año llegó el hombre a la Luna?", a:["1965","1969","1972","1975"], correct:1 },
-    { q:"¿Cuál es el elemento químico con símbolo 'O'?", a:["Oro","Oxígeno","Osmio","Ozono"], correct:1 },
-    { q:"¿Qué idioma se habla en Brasil?", a:["Español","Portugués","Inglés","Francés"], correct:1 },
-    { q:"¿Cuál es el océano más grande?", a:["Atlántico","Pacífico","Índico","Ártico"], correct:1 },
-    { q:"¿Qué país tiene forma de bota?", a:["Grecia","Italia","España","Portugal"], correct:1 },
-    { q:"¿Quién pintó la Mona Lisa?", a:["Picasso","Leonardo da Vinci","Van Gogh","Rembrandt"], correct:1 },
-    { q:"¿Cuál es el animal más rápido del mundo?", a:["León","Tigre","Guepardo","Águila"], correct:2 },
-    { q:"¿Qué gas respiramos principalmente?", a:["Nitrógeno","Oxígeno","Dióxido de carbono","Hidrógeno"], correct:1 },
-    { q:"¿Cuál es la moneda de Japón?", a:["Yuan","Yen","Dólar","Won"], correct:1 },
-    { q:"¿Qué continente tiene más países?", a:["África","Asia","Europa","América"], correct:0 },
-    { q:"¿Quién descubrió América?", a:["Cristóbal Colón","Leif Erikson","Magallanes","Américo Vespucio"], correct:0 },
-    { q:"¿Cuál es la velocidad de la luz?", a:["300.000 km/s","150.000 km/s","1.000 km/s","30.000 km/s"], correct:0 },
-    { q:"¿Qué instrumento mide la temperatura?", a:["Barómetro","Termómetro","Higrómetro","Sismógrafo"], correct:1 },
-    { q:"¿Qué año comenzó la Segunda Guerra Mundial?", a:["1939","1941","1935","1945"], correct:0 },
-    { q:"¿Quién es el autor de 'Hamlet'?", a:["Shakespeare","Dante","Goethe","Tolstói"], correct:0 },
-    { q:"¿Cuál es el río más largo del mundo?", a:["Amazonas","Nilo","Misisipi","Yangtsé"], correct:0 },
-    { q:"¿Qué país ganó la Copa del Mundo 2018?", a:["Brasil","Alemania","Francia","Argentina"], correct:2 }
-];
+        // Banco de preguntas
+        let questions = [
+            { q:"¿Cuál es la capital de Francia?", a:["Madrid","París","Roma","Berlín"], correct:1 },
+            { q:"¿Quién escribió 'Cien años de soledad'?", a:["Gabriel García Márquez","Mario Vargas Llosa","Pablo Neruda","Julio Cortázar"], correct:0 },
+            { q:"¿Cuál es el planeta más grande del sistema solar?", a:["Saturno","Júpiter","Marte","Neptuno"], correct:1 },
+            { q:"¿En qué año llegó el hombre a la Luna?", a:["1965","1969","1972","1975"], correct:1 },
+            { q:"¿Cuál es el elemento químico con símbolo 'O'?", a:["Oro","Oxígeno","Osmio","Ozono"], correct:1 },
+            { q:"¿Qué idioma se habla en Brasil?", a:["Español","Portugués","Inglés","Francés"], correct:1 },
+            { q:"¿Cuál es el océano más grande?", a:["Atlántico","Pacífico","Índico","Ártico"], correct:1 },
+            { q:"¿Qué país tiene forma de bota?", a:["Grecia","Italia","España","Portugal"], correct:1 },
+            { q:"¿Quién pintó la Mona Lisa?", a:["Picasso","Leonardo da Vinci","Van Gogh","Rembrandt"], correct:1 },
+            { q:"¿Cuál es el animal más rápido del mundo?", a:["León","Tigre","Guepardo","Águila"], correct:2 },
+            { q:"¿Qué gas respiramos principalmente?", a:["Nitrógeno","Oxígeno","Dióxido de carbono","Hidrógeno"], correct:1 },
+            { q:"¿Cuál es la moneda de Japón?", a:["Yuan","Yen","Dólar","Won"], correct:1 },
+            { q:"¿Qué continente tiene más países?", a:["África","Asia","Europa","América"], correct:0 },
+            { q:"¿Quién descubrió América?", a:["Cristóbal Colón","Leif Erikson","Magallanes","Américo Vespucio"], correct:0 },
+            { q:"¿Cuál es la velocidad de la luz?", a:["300.000 km/s","150.000 km/s","1.000 km/s","30.000 km/s"], correct:0 },
+            { q:"¿Qué instrumento mide la temperatura?", a:["Barómetro","Termómetro","Higrómetro","Sismógrafo"], correct:1 },
+            { q:"¿Qué año comenzó la Segunda Guerra Mundial?", a:["1939","1941","1935","1945"], correct:0 },
+            { q:"¿Quién es el autor de 'Hamlet'?", a:["Shakespeare","Dante","Goethe","Tolstói"], correct:0 },
+            { q:"¿Cuál es el río más largo del mundo?", a:["Amazonas","Nilo","Misisipi","Yangtsé"], correct:0 },
+            { q:"¿Qué país ganó la Copa del Mundo 2018?", a:["Brasil","Alemania","Francia","Argentina"], correct:2 }
+        ];
 
-// Banco de datos para IA
-const aiQuestionBank = {
-    geography: [
-        { question: "¿Cuál es el país más grande del mundo por superficie?", correct: "Rusia", incorrect: ["Canadá", "China", "Estados Unidos"] },
-        { question: "¿Cuál es el desierto más caliente del mundo?", correct: "Sahara", incorrect: ["Gobi", "Atacama", "Arábigo"] },
-        { question: "¿En qué continente se encuentra Egipto?", correct: "África", incorrect: ["Asia", "Europa", "América"] },
-        { question: "¿Cuál es la montaña más alta del mundo?", correct: "Everest", incorrect: ["K2", "Kangchenjunga", "Lhotse"] },
-        { question: "¿Cuál es el río más largo de Sudamérica?", correct: "Amazonas", incorrect: ["Orinoco", "Paraná", "Magdalena"] }
-    ],
-    history: [
-        { question: "¿En qué año cayó el Imperio Romano?", correct: "476 d.C.", incorrect: ["106 d.C.", "313 d.C.", "79 d.C."] },
-        { question: "¿Quién fue el primer presidente de Estados Unidos?", correct: "George Washington", incorrect: ["Thomas Jefferson", "Benjamin Franklin", "Abraham Lincoln"] },
-        { question: "¿Cuándo terminó la Primera Guerra Mundial?", correct: "1918", incorrect: ["1914", "1916", "1920"] },
-        { question: "¿Qué civilización construyó Machu Picchu?", correct: "Inca", incorrect: ["Azteca", "Maya", "Olmeca"] },
-        { question: "¿Quién inventó la lámpara incandescente?", correct: "Thomas Edison", incorrect: ["Nikola Tesla", "Alexander Graham Bell", "Benjamin Franklin"] }
-    ],
-    science: [
-        { question: "¿Cuántos huesos tiene el cuerpo humano adulto?", correct: "206", incorrect: ["208", "204", "210"] },
-        { question: "¿Cuál es el componente principal del aire?", correct: "Nitrógeno", incorrect: ["Oxígeno", "Dióxido de carbono", "Argón"] },
-        { question: "¿Cuántos planetas hay en el sistema solar?", correct: "8", incorrect: ["7", "9", "10"] },
-        { question: "¿Qué órgano del cuerpo humano produce insulina?", correct: "Páncreas", incorrect: ["Hígado", "Riñón", "Corazón"] },
-        { question: "¿Cuál es la fórmula química del agua?", correct: "H2O", incorrect: ["CO2", "O2", "H2O2"] }
-    ],
-    sports: [
-        { question: "¿Cuántos jugadores tiene un equipo de fútbol en campo?", correct: "11", incorrect: ["9", "10", "12"] },
-        { question: "¿En qué deporte se usa una red de 3.05 metros de altura?", correct: "Baloncesto", incorrect: ["Voleibol", "Tenis", "Bádminton"] },
-        { question: "¿Cada cuántos años se celebran los Juegos Olímpicos?", correct: "4 años", incorrect: ["2 años", "3 años", "5 años"] },
-        { question: "¿Qué país ha ganado más Copas del Mundo de fútbol?", correct: "Brasil", incorrect: ["Alemania", "Argentina", "Italia"] },
-        { question: "¿En qué deporte se compite en el Tour de Francia?", correct: "Ciclismo", incorrect: ["Atletismo", "Natación", "Automovilismo"] }
-    ],
-    technology: [
-        { question: "¿Quién fundó Microsoft?", correct: "Bill Gates", incorrect: ["Steve Jobs", "Mark Zuckerberg", "Larry Page"] },
-        { question: "¿En qué año se creó Facebook?", correct: "2004", incorrect: ["2002", "2005", "2006"] },
-        { question: "¿Qué significa 'WWW' en informática?", correct: "World Wide Web", incorrect: ["World Wide Wait", "Web World Wide", "World Web Wide"] },
-        { question: "¿Cuál fue el primer smartphone de Apple?", correct: "iPhone", incorrect: ["iPod", "iPad", "iMac"] },
-        { question: "¿Qué lenguaje de programación es conocido como 'el lenguaje de la web'?", correct: "JavaScript", incorrect: ["Python", "Java", "C++"] }
-    ],
-    culture: [
-        { question: "¿Quién pintó 'Las Meninas'?", correct: "Diego Velázquez", incorrect: ["Pablo Picasso", "Francisco Goya", "Salvador Dalí"] },
-        { question: "¿Cuántas cuerdas tiene una guitarra estándar?", correct: "6", incorrect: ["4", "5", "7"] },
-        { question: "¿Quién dirigió 'Titanic'?", correct: "James Cameron", incorrect: ["Steven Spielberg", "Martin Scorsese", "Quentin Tarantino"] },
-        { question: "¿En qué año se publicó 'Don Quijote de la Mancha'?", correct: "1605", incorrect: ["1595", "1615", "1585"] },
-        { question: "¿Cuál es el instrumento musical más vendido del mundo?", correct: "Guitarra", incorrect: ["Piano", "Violín", "Batería"] }
-    ]
-};
+        // Banco de datos para IA - EXPANDIDO
+        const aiQuestionBank = {
+            geography: [
+                { question: "¿Cuál es el país más grande del mundo por superficie?", correct: "Rusia", incorrect: ["Canadá", "China", "Estados Unidos"] },
+                { question: "¿Cuál es el desierto más caliente del mundo?", correct: "Sahara", incorrect: ["Gobi", "Atacama", "Arábigo"] },
+                { question: "¿En qué continente se encuentra Egipto?", correct: "África", incorrect: ["Asia", "Europa", "América"] },
+                { question: "¿Cuál es la montaña más alta del mundo?", correct: "Everest", incorrect: ["K2", "Kangchenjunga", "Lhotse"] },
+                { question: "¿Cuál es el río más largo de Sudamérica?", correct: "Amazonas", incorrect: ["Orinoco", "Paraná", "Magdalena"] },
+                { question: "¿Cuál es la capital de Australia?", correct: "Canberra", incorrect: ["Sídney", "Melbourne", "Brisbane"] },
+                { question: "¿Qué país tiene más islas en el mundo?", correct: "Suecia", incorrect: ["Noruega", "Finlandia", "Canadá"] },
+                { question: "¿Cuál es el océano más profundo?", correct: "Pacífico", incorrect: ["Atlántico", "Índico", "Ártico"] }
+            ],
+            history: [
+                { question: "¿En qué año cayó el Imperio Romano?", correct: "476 d.C.", incorrect: ["106 d.C.", "313 d.C.", "79 d.C."] },
+                { question: "¿Quién fue el primer presidente de Estados Unidos?", correct: "George Washington", incorrect: ["Thomas Jefferson", "Benjamin Franklin", "Abraham Lincoln"] },
+                { question: "¿Cuándo terminó la Primera Guerra Mundial?", correct: "1918", incorrect: ["1914", "1916", "1920"] },
+                { question: "¿Qué civilización construyó Machu Picchu?", correct: "Inca", incorrect: ["Azteca", "Maya", "Olmeca"] },
+                { question: "¿Quién inventó la lámpara incandescente?", correct: "Thomas Edison", incorrect: ["Nikola Tesla", "Alexander Graham Bell", "Benjamin Franklin"] },
+                { question: "¿En qué año se descubrió América?", correct: "1492", incorrect: ["1491", "1493", "1500"] },
+                { question: "¿Quién fue Napoleón?", correct: "Emperador francés", incorrect: ["Rey inglés", "Papa", "General romano"] },
+                { question: "¿Cuándo comenzó la Revolución Francesa?", correct: "1789", incorrect: ["1776", "1812", "1848"] }
+            ],
+            science: [
+                { question: "¿Cuántos huesos tiene el cuerpo humano adulto?", correct: "206", incorrect: ["208", "204", "210"] },
+                { question: "¿Cuál es el componente principal del aire?", correct: "Nitrógeno", incorrect: ["Oxígeno", "Dióxido de carbono", "Argón"] },
+                { question: "¿Cuántos planetas hay en el sistema solar?", correct: "8", incorrect: ["7", "9", "10"] },
+                { question: "¿Qué órgano del cuerpo humano produce insulina?", correct: "Páncreas", incorrect: ["Hígado", "Riñón", "Corazón"] },
+                { question: "¿Cuál es la fórmula química del agua?", correct: "H2O", incorrect: ["CO2", "O2", "H2O2"] },
+                { question: "¿Cuál es la velocidad de la luz?", correct: "300.000 km/s", incorrect: ["150.000 km/s", "1.000 km/s", "30.000 km/s"] },
+                { question: "¿Qué elemento químico tiene símbolo Au?", correct: "Oro", incorrect: ["Plata", "Platino", "Cobre"] },
+                { question: "¿Cuántos litros de sangre tiene el cuerpo humano?", correct: "5 litros", incorrect: ["3 litros", "7 litros", "10 litros"] }
+            ],
+            sports: [
+                { question: "¿Cuántos jugadores tiene un equipo de fútbol en campo?", correct: "11", incorrect: ["9", "10", "12"] },
+                { question: "¿En qué deporte se usa una red de 3.05 metros de altura?", correct: "Baloncesto", incorrect: ["Voleibol", "Tenis", "Bádminton"] },
+                { question: "¿Cada cuántos años se celebran los Juegos Olímpicos?", correct: "4 años", incorrect: ["2 años", "3 años", "5 años"] },
+                { question: "¿Qué país ha ganado más Copas del Mundo de fútbol?", correct: "Brasil", incorrect: ["Alemania", "Argentina", "Italia"] },
+                { question: "¿En qué deporte se compite en el Tour de Francia?", correct: "Ciclismo", incorrect: ["Atletismo", "Natación", "Automovilismo"] },
+                { question: "¿Cuántos puntos se marcan en un touchdown de fútbol americano?", correct: "6 puntos", incorrect: ["3 puntos", "7 puntos", "2 puntos"] },
+                { question: "¿Quién es considerado el mejor jugador de baloncesto de todos los tiempos?", correct: "Michael Jordan", incorrect: ["LeBron James", "Kobe Bryant", "Magic Johnson"] },
+                { question: "¿En qué deporte se usa una raqueta?", correct: "Tenis", incorrect: ["Fútbol", "Baloncesto", "Natación"] }
+            ],
+            technology: [
+                { question: "¿Quién fundó Microsoft?", correct: "Bill Gates", incorrect: ["Steve Jobs", "Mark Zuckerberg", "Larry Page"] },
+                { question: "¿En qué año se creó Facebook?", correct: "2004", incorrect: ["2002", "2005", "2006"] },
+                { question: "¿Qué significa 'WWW' en informática?", correct: "World Wide Web", incorrect: ["World Wide Wait", "Web World Wide", "World Web Wide"] },
+                { question: "¿Cuál fue el primer smartphone de Apple?", correct: "iPhone", incorrect: ["iPod", "iPad", "iMac"] },
+                { question: "¿Qué lenguaje de programación es conocido como 'el lenguaje de la web'?", correct: "JavaScript", incorrect: ["Python", "Java", "C++"] },
+                { question: "¿Quién fundó Apple?", correct: "Steve Jobs", incorrect: ["Bill Gates", "Mark Zuckerberg", "Elon Musk"] },
+                { question: "¿Qué significa 'AI' en tecnología?", correct: "Inteligencia Artificial", incorrect: ["Automatización Industrial", "Análisis Inteligente", "Arte Interactivo"] },
+                { question: "¿Cuál es el sistema operativo más usado en el mundo?", correct: "Android", incorrect: ["iOS", "Windows", "macOS"] }
+            ],
+            culture: [
+                { question: "¿Quién pintó 'Las Meninas'?", correct: "Diego Velázquez", incorrect: ["Pablo Picasso", "Francisco Goya", "Salvador Dalí"] },
+                { question: "¿Cuántas cuerdas tiene una guitarra estándar?", correct: "6", incorrect: ["4", "5", "7"] },
+                { question: "¿Quién dirigió 'Titanic'?", correct: "James Cameron", incorrect: ["Steven Spielberg", "Martin Scorsese", "Quentin Tarantino"] },
+                { question: "¿En qué año se publicó 'Don Quijote de la Mancha'?", correct: "1605", incorrect: ["1595", "1615", "1585"] },
+                { question: "¿Cuál es el instrumento musical más vendido del mundo?", correct: "Guitarra", incorrect: ["Piano", "Violín", "Batería"] },
+                { question: "¿Quién escribió '1984'?", correct: "George Orwell", incorrect: ["Aldous Huxley", "Ray Bradbury", "Isaac Asimov"] },
+                { question: "¿Cuál es la película más taquillera de todos los tiempos?", correct: "Avatar", incorrect: ["Titanic", "Star Wars", "Vengadores: Endgame"] },
+                { question: "¿Quién compuso 'Las Cuatro Estaciones'?", correct: "Vivaldi", incorrect: ["Mozart", "Beethoven", "Bach"] }
+            ],
+            general: [
+                { question: "¿Cuál es el animal terrestre más rápido?", correct: "Guepardo", incorrect: ["León", "Tigre", "Leopardo"] },
+                { question: "¿Cuántos días tiene un año bisiesto?", correct: "366", incorrect: ["365", "364", "367"] },
+                { question: "¿Cuál es el planeta más cercano al Sol?", correct: "Mercurio", incorrect: ["Venus", "Tierra", "Marte"] },
+                { question: "¿Cuántos continentes hay en el mundo?", correct: "7", incorrect: ["5", "6", "8"] },
+                { question: "¿Cuál es el océano más grande?", correct: "Pacífico", incorrect: ["Atlántico", "Índico", "Ártico"] },
+                { question: "¿Cuántos minutos tiene una hora?", correct: "60", incorrect: ["30", "45", "90"] },
+                { question: "¿Cuál es la capital de España?", correct: "Madrid", incorrect: ["Barcelona", "Valencia", "Sevilla"] },
+                { question: "¿Cuántos lados tiene un hexágono?", correct: "6", incorrect: ["5", "7", "8"] }
+            ]
+        };
 
-// ====== FUNCIONES DE FIREBASE MEJORADAS ======
-function updateConnectionStatus(connected) {
-    isOnline = connected;
-    const indicator = document.getElementById('connection-indicator');
-    const text = document.getElementById('connection-text');
-    
-    if (connected) {
-        indicator.className = 'connection-indicator connected';
-        text.textContent = 'Conectado - Sincronización en tiempo real activa';
-        
-        // Si es la primera vez que nos conectamos, cargar datos desde Firebase
-        if (!initialLoadComplete) {
-            loadFromFirebase();
+        // ===== FUNCIONES DE FIREBASE =====
+        function updateConnectionStatus(connected) {
+            isOnline = connected;
+            const indicator = document.getElementById('connection-indicator');
+            const text = document.getElementById('connection-text');
+            
+            if (connected) {
+                indicator.className = 'connection-indicator connected';
+                text.textContent = 'Conectado - Sincronización en tiempo real activa';
+                
+                if (!initialLoadComplete) {
+                    loadFromFirebase();
+                }
+            } else {
+                indicator.className = 'connection-indicator disconnected';
+                text.textContent = 'Desconectado - Modo offline';
+            }
         }
-    } else {
-        indicator.className = 'connection-indicator disconnected';
-        text.textContent = 'Desconectado - Modo offline';
-    }
-}
 
-// Nueva función para cargar datos desde Firebase
-function loadFromFirebase() {
-    database.ref('gameData').once('value', (snapshot) => {
-        if (snapshot.exists()) {
-            const data = snapshot.val();
+        function loadFromFirebase() {
+            database.ref('gameData').once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    
+                    if (data.players) players = data.players;
+                    if (data.currentPlayerIndex !== undefined) currentPlayerIndex = data.currentPlayerIndex;
+                    if (data.questions) questions = data.questions;
+                    if (data.soundSettings) soundSettings = data.soundSettings;
+                    
+                    localStorage.setItem('quizQuestions', JSON.stringify(questions));
+                    localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
+                    
+                    renderPlayers();
+                    loadSoundSettings();
+                    
+                    initialLoadComplete = true;
+                    console.log('Datos cargados desde Firebase');
+                } else {
+                    initialLoadComplete = true;
+                    syncToFirebase();
+                }
+            });
+        }
+
+        function syncToFirebase() {
+            if (!isOnline || syncInProgress) return;
             
-            // Actualizar datos locales con los de Firebase
-            if (data.players) players = data.players;
-            if (data.currentPlayerIndex !== undefined) currentPlayerIndex = data.currentPlayerIndex;
-            if (data.questions) questions = data.questions;
-            if (data.soundSettings) soundSettings = data.soundSettings;
-            if (data.playerPhotos) playerPhotos = data.playerPhotos;
+            syncInProgress = true;
+            const indicator = document.getElementById('connection-indicator');
+            indicator.className = 'connection-indicator syncing';
+            document.getElementById('connection-text').textContent = 'Sincronizando...';
             
-            // Guardar en localStorage como respaldo
-            localStorage.setItem('quizQuestions', JSON.stringify(questions));
-            localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
-            localStorage.setItem('playerPhotos', JSON.stringify(playerPhotos));
+            const gameData = {
+                players: players,
+                currentPlayerIndex: currentPlayerIndex,
+                questions: questions,
+                soundSettings: soundSettings,
+                timestamp: Date.now()
+            };
             
-            // Actualizar UI
-            renderPlayers();
+            database.ref('gameData').update(gameData, (error) => {
+                syncInProgress = false;
+                if (error) {
+                    console.error('Error al sincronizar:', error);
+                    updateConnectionStatus(false);
+                } else {
+                    updateConnectionStatus(true);
+                    setTimeout(() => {
+                        if (isOnline) {
+                            indicator.className = 'connection-indicator connected';
+                            document.getElementById('connection-text').textContent = 'Conectado - Sincronización en tiempo real activa';
+                        }
+                    }, 1000);
+                    
+                    console.log('Datos sincronizados con Firebase');
+                }
+            });
+        }
+
+        function setupFirebaseListeners() {
+            database.ref('.info/connected').on('value', (snapshot) => {
+                updateConnectionStatus(snapshot.val());
+            });
             
-            // Cargar configuraciones de sonido
-            loadSoundSettings();
+            database.ref('gameData/soundSettings').on('value', (snapshot) => {
+                if (snapshot.exists() && isOnline) {
+                    const newSoundSettings = snapshot.val();
+                    
+                    const hasChanges = JSON.stringify(newSoundSettings) !== JSON.stringify(soundSettings);
+                    
+                    if (hasChanges) {
+                        soundSettings = newSoundSettings;
+                        localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
+                        
+                        if (document.getElementById('admin-container').style.display === 'flex') {
+                            document.getElementById('elimination-message-input').value = soundSettings.eliminationMessage;
+                            document.getElementById('victory-message-input').value = soundSettings.victoryMessage;
+                            document.getElementById('wrong-answer-input').value = soundSettings.wrongAnswerMessage;
+                            loadVoices();
+                        }
+                        
+                        console.log('Configuraciones de sonido actualizadas desde Firebase');
+                    }
+                }
+            });
+        }
+
+        // ===== FUNCIONES DE SONIDO =====
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const soundToggle = document.getElementById('sound-toggle');
+            const soundText = document.getElementById('sound-text');
+            const icon = soundToggle.querySelector('i');
             
-            // Marcar que la carga inicial está completa
-            initialLoadComplete = true;
+            if (soundEnabled) {
+                soundToggle.classList.remove('muted');
+                soundText.textContent = 'Sonido ON';
+                icon.className = 'fas fa-volume-up';
+            } else {
+                soundToggle.classList.add('muted');
+                soundText.textContent = 'Sonido OFF';
+                icon.className = 'fas fa-volume-mute';
+            }
             
-            console.log('Datos cargados desde Firebase');
-        } else {
-            // Si no hay datos en Firebase, usar los locales y sincronizarlos
-            initialLoadComplete = true;
             syncToFirebase();
         }
-    });
-}
 
-function syncToFirebase() {
-    if (!isOnline || syncInProgress) return;
-    
-    syncInProgress = true;
-    const indicator = document.getElementById('connection-indicator');
-    indicator.className = 'connection-indicator syncing';
-    document.getElementById('connection-text').textContent = 'Sincronizando...';
-    
-    const gameData = {
-        players: players,
-        currentPlayerIndex: currentPlayerIndex,
-        questions: questions,
-        soundSettings: soundSettings,
-        playerPhotos: playerPhotos,
-        timestamp: Date.now()
-    };
-    
-    // Usar update en lugar de set para sobrescribir solo los datos necesarios
-    database.ref('gameData').update(gameData, (error) => {
-        syncInProgress = false;
-        if (error) {
-            console.error('Error al sincronizar:', error);
-            updateConnectionStatus(false);
-        } else {
-            updateConnectionStatus(true);
+        function showSoundIndicator() {
+            if (!soundEnabled) return;
+            
+            const indicator = document.getElementById('sound-indicator');
+            indicator.style.display = 'flex';
+            
             setTimeout(() => {
-                if (isOnline) {
-                    indicator.className = 'connection-indicator connected';
-                    document.getElementById('connection-text').textContent = 'Conectado - Sincronización en tiempo real activa';
+                indicator.style.display = 'none';
+            }, 2000);
+        }
+
+        function speak(text) {
+            if (!soundEnabled) return;
+            
+            showSoundIndicator();
+            window.speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance();
+            utterance.text = text;
+            utterance.lang = 'es-ES';
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+            
+            let voices = window.speechSynthesis.getVoices();
+            if (voices.length === 0) {
+                window.speechSynthesis.getVoices();
+                voices = window.speechSynthesis.getVoices();
+            }
+            
+            if (soundSettings.selectedVoice) {
+                const selectedVoice = voices.find(voice => voice.name === soundSettings.selectedVoice);
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                } else {
+                    const spanishVoice = voices.find(voice => voice.lang.includes('es'));
+                    if (spanishVoice) {
+                        utterance.voice = spanishVoice;
+                        soundSettings.selectedVoice = spanishVoice.name;
+                        saveSoundSettings();
+                    }
+                }
+            } else {
+                const spanishVoice = voices.find(voice => voice.lang.includes('es'));
+                if (spanishVoice) {
+                    utterance.voice = spanishVoice;
+                    soundSettings.selectedVoice = spanishVoice.name;
+                    saveSoundSettings();
+                }
+            }
+            
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function speakElimination(playerName) {
+            const message = soundSettings.eliminationMessage.replace('{nombre}', playerName);
+            speak(message);
+        }
+
+        function speakVictory(playerName) {
+            const message = soundSettings.victoryMessage.replace('{nombre}', playerName);
+            speak(message);
+        }
+
+        function speakWrongAnswer(correctAnswer) {
+            const message = soundSettings.wrongAnswerMessage.replace('{respuesta}', correctAnswer);
+            speak(message);
+        }
+
+        // ===== FUNCIONES DE VOZ =====
+        function loadVoices() {
+            let voices = window.speechSynthesis.getVoices();
+            
+            if (voices.length === 0) {
+                setTimeout(() => {
+                    loadVoices();
+                }, 100);
+                return;
+            }
+            
+            const voiceSelect = document.getElementById('voice-select');
+            if (!voiceSelect) return;
+            
+            voiceSelect.innerHTML = '';
+            
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Seleccionar voz...';
+            voiceSelect.appendChild(defaultOption);
+            
+            const spanishVoices = voices.filter(voice => 
+                voice.lang.includes('es-ES') || 
+                voice.lang.includes('es-MX') || 
+                voice.lang.includes('es-AR') || 
+                voice.lang.includes('es-CO') || 
+                voice.lang.includes('es-CL') || 
+                voice.lang.includes('es-PE') || 
+                voice.lang.includes('es-VE') || 
+                voice.lang.includes('es') ||
+                voice.name.toLowerCase().includes('spanish') ||
+                voice.name.toLowerCase().includes('español') ||
+                voice.name.toLowerCase().includes('espana')
+            );
+            
+            const englishVoices = voices.filter(voice => voice.lang.includes('en'));
+            const otherVoices = voices.filter(voice => 
+                !voice.lang.includes('es') && !voice.lang.includes('en')
+            );
+            
+            if (spanishVoices.length > 0) {
+                const spanishGroup = document.createElement('optgroup');
+                spanishGroup.label = '🇪🇸 Voces en Español';
+                
+                spanishVoices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.name;
+                    
+                    let voiceText = `${voice.name} (${voice.lang})`;
+                    
+                    if (voice.name.toLowerCase().includes('google')) {
+                        voiceText += ' 🌟';
+                    }
+                    if (voice.name.toLowerCase().includes('microsoft')) {
+                        voiceText += ' 🪟';
+                    }
+                    if (voice.name.toLowerCase().includes('amazon')) {
+                        voiceText += ' 🔊';
+                    }
+                    if (voice.name.toLowerCase().includes('azure')) {
+                        voiceText += ' ☁️';
+                    }
+                    if (voice.name.toLowerCase().includes('female') || voice.name.toLowerCase().includes('mujer')) {
+                        voiceText += ' 👩';
+                    }
+                    if (voice.name.toLowerCase().includes('male') || voice.name.toLowerCase().includes('hombre')) {
+                        voiceText += ' 👨';
+                    }
+                    if (voice.name.toLowerCase().includes('comentarista') || voice.name.toLowerCase().includes('announcer')) {
+                        voiceText += ' 🎤';
+                    }
+                    if (voice.name.toLowerCase().includes('natural')) {
+                        voiceText += ' 🗣️';
+                    }
+                    if (voice.name.toLowerCase().includes('premium') || voice.name.toLowerCase().includes('hd')) {
+                        voiceText += ' 💎';
+                    }
+                    
+                    option.textContent = voiceText;
+                    spanishGroup.appendChild(option);
+                });
+                
+                voiceSelect.appendChild(spanishGroup);
+            }
+            
+            if (englishVoices.length > 0) {
+                const englishGroup = document.createElement('optgroup');
+                englishGroup.label = '🇬🇧🇺🇸 English Voices';
+                
+                englishVoices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.name;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    if (voice.name.toLowerCase().includes('comentarista') || voice.name.toLowerCase().includes('announcer')) {
+                        option.textContent += ' 🎤';
+                    }
+                    englishGroup.appendChild(option);
+                });
+                
+                voiceSelect.appendChild(englishGroup);
+            }
+            
+            if (otherVoices.length > 0) {
+                const otherGroup = document.createElement('optgroup');
+                otherGroup.label = '🌍 Otras Voces';
+                
+                otherVoices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.name;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    otherGroup.appendChild(option);
+                });
+                
+                voiceSelect.appendChild(otherGroup);
+            }
+            
+            if (soundSettings.selectedVoice) {
+                voiceSelect.value = soundSettings.selectedVoice;
+            } else {
+                const firstSpanish = spanishVoices[0];
+                if (firstSpanish) {
+                    voiceSelect.value = firstSpanish.name;
+                    soundSettings.selectedVoice = firstSpanish.name;
+                    saveSoundSettings();
+                }
+            }
+        }
+
+        function updateVoiceSelection() {
+            const voiceSelect = document.getElementById('voice-select');
+            soundSettings.selectedVoice = voiceSelect.value;
+            
+            localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
+            
+            if (isOnline) {
+                database.ref('gameData/soundSettings').set(soundSettings, (error) => {
+                    if (error) {
+                        console.error('Error al guardar configuraciones de sonido:', error);
+                    } else {
+                        console.log('Configuraciones de voz guardadas en Firebase');
+                    }
+                });
+            }
+            
+            const testMessage = "Esta es la voz seleccionada para el juego";
+            speak(testMessage);
+        }
+
+        function saveSoundSettings() {
+            soundSettings.eliminationMessage = document.getElementById('elimination-message-input').value;
+            soundSettings.victoryMessage = document.getElementById('victory-message-input').value;
+            soundSettings.wrongAnswerMessage = document.getElementById('wrong-answer-input').value;
+            
+            localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
+            
+            if (isOnline) {
+                database.ref('gameData/soundSettings').set(soundSettings, (error) => {
+                    if (error) {
+                        console.error('Error al guardar configuraciones de sonido:', error);
+                    } else {
+                        console.log('Configuraciones de sonido guardadas en Firebase');
+                    }
+                });
+            }
+        }
+
+        function testEliminationSound() {
+            const playerName = "Jugador de Prueba";
+            const message = document.getElementById('elimination-message-input').value.replace('{nombre}', playerName);
+            speak(message);
+        }
+
+        function testVictorySound() {
+            const playerName = "Jugador de Prueba";
+            const message = document.getElementById('victory-message-input').value.replace('{nombre}', playerName);
+            speak(message);
+        }
+
+        function testWrongAnswerSound() {
+            const correctAnswer = "Respuesta Correcta";
+            const message = document.getElementById('wrong-answer-input').value.replace('{respuesta}', correctAnswer);
+            speak(message);
+        }
+
+        // ===== FUNCIONES DE JUEGO =====
+        function renderPlayers(){
+            const tbody = document.getElementById("players-body");
+            tbody.innerHTML="";
+            players.forEach((p,i)=>{
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${p.name}</td>
+                    <td class="life-indicator ${p.lives<3?'lost':''}">${"❤️".repeat(p.lives)}</td>
+                    <td>${p.correct}</td>
+                    <td><button class="btn btn-danger" onclick="removePlayer(${i})" style="padding: 5px 10px; font-size: 0.8rem;">
+                        <i class="fas fa-trash"></i>
+                    </button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function addPlayer(){
+            const input = document.getElementById("new-player");
+            const name = input.value.trim();
+            if(name){
+                players.push({name:name, lives:3, correct:0});
+                input.value="";
+                renderPlayers();
+                if(players.length === 1) {
+                    showPlayerTurn();
+                }
+                syncToFirebase();
+            }
+        }
+
+        function removePlayer(i){
+            players.splice(i,1);
+            if(currentPlayerIndex >= players.length) currentPlayerIndex=0;
+            renderPlayers();
+            if(players.length === 0) {
+                document.getElementById("current-player").textContent = "";
+                document.getElementById("question-text").textContent = "";
+                document.getElementById("options").innerHTML = "";
+                document.getElementById("result").textContent = "";
+            }
+            syncToFirebase();
+        }
+
+        function showPlayerTurn() {
+            if(players.length===0) return;
+            
+            const player = players[currentPlayerIndex];
+            
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            document.getElementById("question-container").style.display = "none";
+            document.getElementById("countdown-container").style.display = "none";
+            
+            const currentPlayerEl = document.getElementById("current-player");
+            currentPlayerEl.textContent = `Turno de: ${player.name}`;
+            currentPlayerEl.style.display = "flex";
+            currentPlayerEl.className = "current-player fade-in";
+            
+            setTimeout(() => {
+                startCountdown();
+            }, 1000);
+        }
+
+        function startCountdown() {
+            const countdownContainer = document.getElementById("countdown-container");
+            const countdownNumber = document.getElementById("countdown-number");
+            const progressBar = document.getElementById("countdown-progress");
+            
+            countdownContainer.style.display = "flex";
+            
+            let countdown = 3;
+            countdownNumber.textContent = countdown;
+            
+            progressBar.style.animation = 'none';
+            setTimeout(() => {
+                progressBar.style.animation = 'progressShrink 3s linear';
+            }, 10);
+            
+            countdownInterval = setInterval(() => {
+                countdown--;
+                
+                if (countdown > 0) {
+                    countdownNumber.textContent = countdown;
+                    countdownNumber.style.animation = 'none';
+                    setTimeout(() => {
+                        countdownNumber.style.animation = 'pulse 1s ease-in-out';
+                    }, 10);
+                } else {
+                    clearInterval(countdownInterval);
+                    countdownContainer.style.display = "none";
+                    showQuestion();
                 }
             }, 1000);
-            
-            console.log('Datos sincronizados con Firebase');
         }
-    });
-}
 
-function setupFirebaseListeners() {
-    // Escuchar cambios en la conexión
-    database.ref('.info/connected').on('value', (snapshot) => {
-        updateConnectionStatus(snapshot.val());
-    });
-    
-    // Escuchar cambios específicos en las configuraciones de sonido
-    database.ref('gameData/soundSettings').on('value', (snapshot) => {
-        if (snapshot.exists() && isOnline) {
-            const newSoundSettings = snapshot.val();
+        function showQuestion(){
+            if(players.length===0) return;
             
-            // Verificar si hay cambios reales
-            const hasChanges = JSON.stringify(newSoundSettings) !== JSON.stringify(soundSettings);
+            document.getElementById("countdown-container").style.display = "none";
             
-            if (hasChanges) {
-                // Actualizar configuraciones locales
-                soundSettings = newSoundSettings;
-                
-                // Guardar en localStorage
-                localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
-                
-                // Actualizar UI si el panel de administración está abierto
-                if (document.getElementById('admin-container').style.display === 'flex') {
-                    document.getElementById('elimination-message-input').value = soundSettings.eliminationMessage;
-                    document.getElementById('victory-message-input').value = soundSettings.victoryMessage;
-                    document.getElementById('wrong-answer-input').value = soundSettings.wrongAnswerMessage;
-                    
-                    // Recargar voces si cambió la selección
-                    loadVoices();
-                }
-                
-                console.log('Configuraciones de sonido actualizadas desde Firebase');
-            }
-        }
-    });
-    
-    // Escuchar cambios en los datos del juego
-    database.ref('gameData').on('value', (snapshot) => {
-        if (snapshot.exists() && isOnline) {
-            const data = snapshot.val();
+            const questionIndex = Math.floor(Math.random()*questions.length);
+            currentQuestion = questions[questionIndex];
             
-            // Solo actualizar si los datos son más recientes
-            if (data.timestamp && (!window.lastSyncTime || data.timestamp > window.lastSyncTime)) {
-                window.lastSyncTime = data.timestamp;
-                
-                // Actualizar datos locales
-                if (data.players) players = data.players;
-                if (data.currentPlayerIndex !== undefined) currentPlayerIndex = data.currentPlayerIndex;
-                if (data.questions) questions = data.questions;
-                if (data.playerPhotos) playerPhotos = data.playerPhotos;
-                
-                // Actualizar UI
-                renderPlayers();
-                
-                // Si hay una pregunta actual, mostrarla
-                if (data.currentQuestion) {
-                    currentQuestion = data.currentQuestion;
-                    showQuestionFromFirebase();
-                }
-            }
-        }
-    });
-}
-
-function showQuestionFromFirebase() {
-    if (!currentQuestion) return;
-    
-    // Ocultar countdown
-    document.getElementById("countdown-container").style.display = "none";
-    
-    // Mostrar pregunta
-    document.getElementById("question-text").textContent = `${currentQuestion.q}`;
-    document.getElementById("question-text").style.display = "block";
-    
-    const optionsDiv = document.getElementById("options");
-    optionsDiv.innerHTML = "";
-    optionsDiv.style.display = "grid";
-    questionAnswered = false;
-    
-    currentQuestion.a.forEach((opt,i)=>{
-        const btn = document.createElement("button");
-        btn.textContent = opt;
-        btn.className="option fade";
-        btn.onclick = () => {
-            if (!questionAnswered) {
-                checkAnswer(i, currentQuestion.correct);
-                questionAnswered = true;
-                // Sincronizar respuesta
-                syncToFirebase();
-            }
-        };
-        optionsDiv.appendChild(btn);
-    });
-    
-    document.getElementById("result").textContent = "";
-    document.getElementById("result").style.display = "flex";
-    document.getElementById("result").className = "fade";
-}
-
-// ====== FUNCIONES DE SONIDO MEJORADAS ======
-function toggleSound() {
-    soundEnabled = !soundEnabled;
-    const soundToggle = document.getElementById('sound-toggle');
-    const soundText = document.getElementById('sound-text');
-    const icon = soundToggle.querySelector('i');
-    
-    if (soundEnabled) {
-        soundToggle.classList.remove('muted');
-        soundText.textContent = 'Sonido ON';
-        icon.className = 'fas fa-volume-up';
-    } else {
-        soundToggle.classList.add('muted');
-        soundText.textContent = 'Sonido OFF';
-        icon.className = 'fas fa-volume-mute';
-    }
-    
-    // Sincronizar configuración
-    syncToFirebase();
-}
-
-function showSoundIndicator() {
-    if (!soundEnabled) return;
-    
-    const indicator = document.getElementById('sound-indicator');
-    indicator.style.display = 'flex';
-    
-    setTimeout(() => {
-        indicator.style.display = 'none';
-    }, 2000);
-}
-
-function speak(text) {
-    if (!soundEnabled) return;
-    
-    showSoundIndicator();
-    
-    // Cancelar cualquier speech anterior
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance();
-    utterance.text = text;
-    utterance.lang = 'es-ES';
-    utterance.rate = 0.9;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
-    
-    // Cargar voces si no están cargadas
-    let voices = window.speechSynthesis.getVoices();
-    if (voices.length === 0) {
-        // Forzar carga de voces
-        window.speechSynthesis.getVoices();
-        voices = window.speechSynthesis.getVoices();
-    }
-    
-    // Usar voz seleccionada si está disponible
-    if (soundSettings.selectedVoice) {
-        const selectedVoice = voices.find(voice => voice.name === soundSettings.selectedVoice);
-        if (selectedVoice) {
-            utterance.voice = selectedVoice;
-        } else {
-            // Si la voz guardada no está disponible, buscar una voz en español
-            const spanishVoice = voices.find(voice => voice.lang.includes('es'));
-            if (spanishVoice) {
-                utterance.voice = spanishVoice;
-                // Actualizar la voz seleccionada
-                soundSettings.selectedVoice = spanishVoice.name;
-                saveSoundSettings();
-            }
-        }
-    } else {
-        // Seleccionar voz española por defecto
-        const spanishVoice = voices.find(voice => voice.lang.includes('es'));
-        if (spanishVoice) {
-            utterance.voice = spanishVoice;
-            // Guardar la voz seleccionada
-            soundSettings.selectedVoice = spanishVoice.name;
-            saveSoundSettings();
-        }
-    }
-    
-    window.speechSynthesis.speak(utterance);
-}
-
-function speakElimination(playerName) {
-    const message = soundSettings.eliminationMessage.replace('{nombre}', playerName);
-    speak(message);
-}
-
-function speakVictory(playerName) {
-    const message = soundSettings.victoryMessage.replace('{nombre}', playerName);
-    speak(message);
-}
-
-function speakWrongAnswer(correctAnswer) {
-    const message = soundSettings.wrongAnswerMessage.replace('{respuesta}', correctAnswer);
-    speak(message);
-}
-
-// ====== FUNCIONES DE VOZ MEJORADAS ======
-function loadVoices() {
-    // Forzar carga de voces
-    let voices = window.speechSynthesis.getVoices();
-    
-    // Si no hay voces, esperar y volver a intentar
-    if (voices.length === 0) {
-        setTimeout(() => {
-            loadVoices();
-        }, 100);
-        return;
-    }
-    
-    const voiceSelect = document.getElementById('voice-select');
-    if (!voiceSelect) return;
-    
-    voiceSelect.innerHTML = '';
-    
-    // Agregar opción por defecto
-    const defaultOption = document.createElement('option');
-    defaultOption.value = '';
-    defaultOption.textContent = 'Seleccionar voz...';
-    voiceSelect.appendChild(defaultOption);
-    
-    // Filtrar TODAS las voces en español de forma más amplia
-    const spanishVoices = voices.filter(voice => 
-        voice.lang.includes('es-ES') || 
-        voice.lang.includes('es-MX') || 
-        voice.lang.includes('es-AR') || 
-        voice.lang.includes('es-CO') || 
-        voice.lang.includes('es-CL') || 
-        voice.lang.includes('es-PE') || 
-        voice.lang.includes('es-VE') || 
-        voice.lang.includes('es') ||
-        voice.name.toLowerCase().includes('spanish') ||
-        voice.name.toLowerCase().includes('español') ||
-        voice.name.toLowerCase().includes('espana')
-    );
-    
-    // Filtrar voces en inglés
-    const englishVoices = voices.filter(voice => voice.lang.includes('en'));
-    
-    // Otras voces
-    const otherVoices = voices.filter(voice => 
-        !voice.lang.includes('es') && !voice.lang.includes('en')
-    );
-    
-    // Añadir voces españolas
-    if (spanishVoices.length > 0) {
-        const spanishGroup = document.createElement('optgroup');
-        spanishGroup.label = '🇪🇸 Voces en Español';
-        
-        // Añadir TODAS las voces españolas disponibles
-        spanishVoices.forEach(voice => {
-            const option = document.createElement('option');
-            option.value = voice.name;
-            
-            // Crear texto descriptivo
-            let voiceText = `${voice.name} (${voice.lang})`;
-            
-            // Añadir iconos según características
-            if (voice.name.toLowerCase().includes('google')) {
-                voiceText += ' 🌟';
-            }
-            if (voice.name.toLowerCase().includes('microsoft')) {
-                voiceText += ' 🪟';
-            }
-            if (voice.name.toLowerCase().includes('amazon')) {
-                voiceText += ' 🔊';
-            }
-            if (voice.name.toLowerCase().includes('azure')) {
-                voiceText += ' ☁️';
-            }
-            if (voice.name.toLowerCase().includes('female') || voice.name.toLowerCase().includes('mujer')) {
-                voiceText += ' 👩';
-            }
-            if (voice.name.toLowerCase().includes('male') || voice.name.toLowerCase().includes('hombre')) {
-                voiceText += ' 👨';
-            }
-            if (voice.name.toLowerCase().includes('comentarista') || voice.name.toLowerCase().includes('announcer')) {
-                voiceText += ' 🎤';
-            }
-            if (voice.name.toLowerCase().includes('natural')) {
-                voiceText += ' 🗣️';
-            }
-            if (voice.name.toLowerCase().includes('premium') || voice.name.toLowerCase().includes('hd')) {
-                voiceText += ' 💎';
+            if (isOnline) {
+                database.ref('gameData/currentQuestion').set(currentQuestion);
             }
             
-            option.textContent = voiceText;
-            spanishGroup.appendChild(option);
-        });
-        
-        voiceSelect.appendChild(spanishGroup);
-    }
-    
-    // Añadir voces en inglés
-    if (englishVoices.length > 0) {
-        const englishGroup = document.createElement('optgroup');
-        englishGroup.label = '🇬🇧🇺🇸 English Voices';
-        
-        englishVoices.forEach(voice => {
-            const option = document.createElement('option');
-            option.value = voice.name;
-            option.textContent = `${voice.name} (${voice.lang})`;
-            if (voice.name.toLowerCase().includes('comentarista') || voice.name.toLowerCase().includes('announcer')) {
-                option.textContent += ' 🎤';
-            }
-            englishGroup.appendChild(option);
-        });
-        
-        voiceSelect.appendChild(englishGroup);
-    }
-    
-    // Añadir otras voces
-    if (otherVoices.length > 0) {
-        const otherGroup = document.createElement('optgroup');
-        otherGroup.label = '🌍 Otras Voces';
-        
-        otherVoices.forEach(voice => {
-            const option = document.createElement('option');
-            option.value = voice.name;
-            option.textContent = `${voice.name} (${voice.lang})`;
-            otherGroup.appendChild(option);
-        });
-        
-        voiceSelect.appendChild(otherGroup);
-    }
-    
-    // Seleccionar voz guardada
-    if (soundSettings.selectedVoice) {
-        voiceSelect.value = soundSettings.selectedVoice;
-    } else {
-        // Seleccionar primera voz española por defecto
-        const firstSpanish = spanishVoices[0];
-        if (firstSpanish) {
-            voiceSelect.value = firstSpanish.name;
-            soundSettings.selectedVoice = firstSpanish.name;
-            // Guardar automáticamente la selección por defecto
-            saveSoundSettings();
+            document.getElementById("question-text").textContent = `${currentQuestion.q}`;
+            document.getElementById("question-container").style.display = "block";
+            
+            const optionsDiv = document.getElementById("options");
+            optionsDiv.innerHTML = "";
+            questionAnswered = false;
+            
+            currentQuestion.a.forEach((opt,i)=>{
+                const btn = document.createElement("button");
+                btn.textContent = opt;
+                btn.className="option-btn fade-in";
+                btn.onclick = () => {
+                    if (!questionAnswered) {
+                        checkAnswer(i, currentQuestion.correct);
+                        questionAnswered = true;
+                        syncToFirebase();
+                    }
+                };
+                optionsDiv.appendChild(btn);
+            });
+            
+            document.getElementById("result").textContent = "";
+            document.getElementById("result").style.display = "none";
         }
-    }
-}
 
-function updateVoiceSelection() {
-    const voiceSelect = document.getElementById('voice-select');
-    soundSettings.selectedVoice = voiceSelect.value;
-    
-    // Guardar en localStorage
-    localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
-    
-    // Sincronizar específicamente las configuraciones de sonido con Firebase
-    database.ref('gameData/soundSettings').set(soundSettings, (error) => {
-        if (error) {
-            console.error('Error al guardar configuraciones de sonido:', error);
-            showNotification('Error al guardar configuraciones de sonido', 'error');
-        } else {
-            console.log('Configuraciones de voz guardadas en Firebase');
-            showNotification('Voz actualizada exitosamente', 'success');
-        }
-    });
-    
-    // Probar la voz seleccionada
-    const testMessage = "Esta es la voz seleccionada para el juego";
-    speak(testMessage);
-}
-
-function saveSoundSettings() {
-    soundSettings.eliminationMessage = document.getElementById('elimination-message-input').value;
-    soundSettings.victoryMessage = document.getElementById('victory-message-input').value;
-    soundSettings.wrongAnswerMessage = document.getElementById('wrong-answer-input').value;
-    
-    // Guardar en localStorage inmediatamente
-    localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
-    
-    // Sincronizar con Firebase
-    if (isOnline) {
-        database.ref('gameData/soundSettings').set(soundSettings, (error) => {
-            if (error) {
-                console.error('Error al guardar configuraciones de sonido:', error);
-                showNotification('Error al guardar configuraciones de sonido', 'error');
+        function checkAnswer(selected, correct){
+            const player = players[currentPlayerIndex];
+            const resultEl = document.getElementById("result");
+            const options = document.querySelectorAll(".option-btn");
+            
+            if(selected===correct){
+                player.correct++;
+                resultEl.textContent=`¡Correcto! +1 punto`;
+                resultEl.className = "result-container correct";
+                resultEl.style.display = "block";
+                options[selected].classList.add("correct");
             } else {
-                console.log('Configuraciones de sonido guardadas en Firebase');
-                showNotification('Configuración de sonido guardada exitosamente', 'success');
+                player.lives--;
+                resultEl.textContent=`Incorrecto. Te quedan ${player.lives} vidas`;
+                resultEl.className = "result-container incorrect";
+                resultEl.style.display = "block";
+                options[selected].classList.add("incorrect");
+                options[correct].classList.add("correct");
                 
-                // Forzar actualización de la interfaz
+                speakWrongAnswer(currentQuestion.a[correct]);
+                
+                if(player.lives===0){
+                    showEliminationAnimation(player);
+                    return;
+                }
+            }
+            
+            renderPlayers();
+            
+            setTimeout(() => {
+                nextTurn();
+            }, 3000);
+        }
+
+        function showEliminationAnimation(player) {
+            const container = document.getElementById("elimination-container");
+            const photo = document.getElementById("elimination-photo");
+            const name = document.getElementById("elimination-name");
+            const message = document.getElementById("elimination-message");
+            const stats = document.getElementById("elimination-stats");
+            
+            name.textContent = player.name.toUpperCase();
+            message.textContent = soundSettings.eliminationMessage.replace('{nombre}', player.name).toUpperCase();
+            stats.textContent = `Respondiste ${player.correct} preguntas correctamente`;
+            
+            photo.src = `https://picsum.photos/seed/${player.name}/300/300.jpg`;
+            
+            createParticles();
+            
+            container.style.display = "flex";
+            
+            speakElimination(player.name);
+            
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200]);
+            }
+        }
+
+        function createParticles() {
+            const particlesContainer = document.getElementById("particles");
+            particlesContainer.innerHTML = "";
+            
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement("div");
+                particle.className = "particle";
+                particle.style.left = Math.random() * 100 + "%";
+                particle.style.animationDelay = Math.random() * 3 + "s";
+                particle.style.backgroundColor = ['#e74c3c', '#e67e22', '#f39c12', '#3498db', '#2ecc71'][Math.floor(Math.random() * 5)];
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        function createWinnerParticles() {
+            const particlesContainer = document.getElementById("winner-particles");
+            particlesContainer.innerHTML = "";
+            
+            for (let i = 0; i < 100; i++) {
+                const particle = document.createElement("div");
+                particle.className = "particle";
+                particle.style.left = Math.random() * 100 + "%";
+                particle.style.animationDelay = Math.random() * 3 + "s";
+                particle.style.backgroundColor = ['#3498db', '#2ecc71', '#f39c12', '#e74c3c', '#9b59b6'][Math.floor(Math.random() * 5)];
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        function closeElimination() {
+            document.getElementById("elimination-container").style.display = "none";
+            nextTurn();
+        }
+
+        function nextTurn(){
+            const activePlayers = players.filter(p=>p.lives>0);
+            if(activePlayers.length===1){
+                showWinnerAnimation(activePlayers[0]);
+                return;
+            }
+
+            do{
+                currentPlayerIndex = (currentPlayerIndex+1) % players.length;
+            } while(players[currentPlayerIndex].lives===0);
+            showPlayerTurn();
+            
+            syncToFirebase();
+        }
+
+        function showWinnerAnimation(player) {
+            const container = document.getElementById("winner-container");
+            const photo = document.getElementById("winner-photo");
+            const name = document.getElementById("winner-name");
+            const message = document.getElementById("winner-message");
+            const stats = document.getElementById("winner-stats");
+            
+            name.textContent = player.name.toUpperCase();
+            message.textContent = soundSettings.victoryMessage.replace('{nombre}', player.name).toUpperCase();
+            stats.textContent = `Eres el campeón con ${player.correct} puntos`;
+            
+            photo.src = `https://picsum.photos/seed/${player.name}/300/300.jpg`;
+            
+            createWinnerParticles();
+            
+            container.style.display = "flex";
+            
+            speakVictory(player.name);
+            
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100, 50, 100, 50, 200]);
+            }
+        }
+
+        function resetGame() {
+            players.forEach(p => {
+                p.lives = 3;
+                p.correct = 0;
+            });
+            currentPlayerIndex = 0;
+            document.getElementById("winner-container").style.display = "none";
+            renderPlayers();
+            showPlayerTurn();
+            
+            syncToFirebase();
+        }
+
+        // ===== FUNCIONES DE LOGIN =====
+        function showLogin() {
+            document.getElementById("login-container").style.display = "flex";
+        }
+
+        function hideLogin() {
+            document.getElementById("login-container").style.display = "none";
+            document.getElementById("username").value = "";
+            document.getElementById("password").value = "";
+        }
+
+        function login(event) {
+            event.preventDefault();
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            
+            if(username === "admin" && password === "clavito01") {
+                isAdminLoggedIn = true;
+                hideLogin();
+                showAdminPanel();
+            } else {
+                showNotification("Usuario o contraseña incorrectos", "error");
+            }
+        }
+
+        function logout() {
+            isAdminLoggedIn = false;
+            document.getElementById("admin-container").style.display = "none";
+        }
+
+        function showAdminPanel() {
+            document.getElementById("admin-container").style.display = "flex";
+            loadQuestionsList();
+            loadSoundSettings();
+        }
+
+        // ===== FUNCIONES DE ADMINISTRACIÓN =====
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if(tab === 'add') {
+                document.getElementById('add-tab').classList.add('active');
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            } else if(tab === 'view') {
+                document.getElementById('view-tab').classList.add('active');
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                loadQuestionsList();
+            } else if(tab === 'sounds') {
+                document.getElementById('sounds-tab').classList.add('active');
+                document.querySelectorAll('.tab-btn')[2].classList.add('active');
                 loadSoundSettings();
             }
-        });
-    } else {
-        showNotification('Configuración guardada localmente', 'success');
-    }
-}
-
-function testEliminationSound() {
-    const playerName = "Jugador de Prueba";
-    const message = document.getElementById('elimination-message-input').value.replace('{nombre}', playerName);
-    speak(message);
-}
-
-function testVictorySound() {
-    const playerName = "Jugador de Prueba";
-    const message = document.getElementById('victory-message-input').value.replace('{nombre}', playerName);
-    speak(message);
-}
-
-function testWrongAnswerSound() {
-    const correctAnswer = "Respuesta Correcta";
-    const message = document.getElementById('wrong-answer-input').value.replace('{respuesta}', correctAnswer);
-    speak(message);
-}
-
-// ====== FUNCIONES DE JUEGO ======
-function renderPlayers(){
-    const tbody = document.getElementById("players-body");
-    tbody.innerHTML="";
-    players.forEach((p,i)=>{
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${p.name}</td>
-            <td class="life ${p.lives<3?'lost':''}">${"❤️".repeat(p.lives)}</td>
-            <td>${p.correct}</td>
-            <td><button class="remove-btn" onclick="removePlayer(${i})"><i class="fas fa-trash"></i></button></td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-function addPlayer(){
-    const input = document.getElementById("new-player");
-    const name = input.value.trim();
-    if(name){
-        players.push({name:name, lives:3, correct:0});
-        input.value="";
-        renderPlayers();
-        if(players.length === 1) {
-            showPlayerTurn();
         }
-        // Sincronizar con Firebase
-        syncToFirebase();
-    }
-}
 
-function removePlayer(i){
-    players.splice(i,1);
-    if(currentPlayerIndex >= players.length) currentPlayerIndex=0;
-    renderPlayers();
-    if(players.length === 0) {
-        document.getElementById("current-player").textContent = "";
-        document.getElementById("question-text").textContent = "";
-        document.getElementById("options").innerHTML = "";
-        document.getElementById("result").textContent = "";
-    }
-    // Sincronizar con Firebase
-    syncToFirebase();
-}
+        function loadSoundSettings() {
+            const savedSettings = localStorage.getItem('soundSettings');
+            if (savedSettings) {
+                try {
+                    const localSettings = JSON.parse(savedSettings);
+                    soundSettings = {
+                        ...soundSettings,
+                        ...localSettings
+                    };
+                } catch (e) {
+                    console.error('Error al cargar configuraciones desde localStorage:', e);
+                }
+            }
+            
+            document.getElementById('elimination-message-input').value = soundSettings.eliminationMessage || "Estas eliminado mi wawita";
+            document.getElementById('victory-message-input').value = soundSettings.victoryMessage || "Felicidades Ganastes mi wawita";
+            document.getElementById('wrong-answer-input').value = soundSettings.wrongAnswerMessage || "Respuesta incorrecta. La respuesta correcta era {respuesta}";
+            
+            loadVoices();
+            
+            if (isOnline) {
+                syncToFirebase();
+            }
+        }
 
-function showPlayerTurn() {
-    if(players.length===0) return;
-    
-    const player = players[currentPlayerIndex];
-    
-    // Limpiar cualquier countdown anterior
-    if (countdownInterval) {
-        clearInterval(countdownInterval);
-    }
-    
-    // Ocultar elementos del juego
-    document.getElementById("question-text").style.display = "none";
-    document.getElementById("options").style.display = "none";
-    document.getElementById("result").style.display = "none";
-    
-    // Mostrar turno del jugador
-    const currentPlayerEl = document.getElementById("current-player");
-    currentPlayerEl.textContent = `Turno de: ${player.name}`;
-    currentPlayerEl.style.display = "flex";
-    currentPlayerEl.className = "fade";
-    
-    // Iniciar countdown después de 1 segundo
-    setTimeout(() => {
-        startCountdown();
-    }, 1000);
-}
-
-function startCountdown() {
-    const countdownContainer = document.getElementById("countdown-container");
-    const countdownNumber = document.getElementById("countdown-number");
-    const progressBar = document.getElementById("countdown-progress");
-    
-    // Mostrar container de countdown
-    countdownContainer.style.display = "flex";
-    
-    let countdown = 2;
-    countdownNumber.textContent = countdown;
-    
-    // Reiniciar animación de la barra de progreso
-    progressBar.style.animation = 'none';
-    setTimeout(() => {
-        progressBar.style.animation = 'progressShrink 2s linear';
-    }, 10);
-    
-    countdownInterval = setInterval(() => {
-        countdown--;
-        
-        if (countdown > 0) {
-            countdownNumber.textContent = countdown;
-            countdownNumber.style.animation = 'none';
+        // ===== FUNCIÓN CORREGIDA DE GENERADOR DE IA =====
+        function generateAIQuestion() {
+            const btn = document.getElementById('ai-generate-btn');
+            const btnText = document.getElementById('ai-btn-text');
+            
+            // Deshabilitar botón y mostrar estado de carga
+            btn.disabled = true;
+            btnText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando pregunta...';
+            
+            // Simular tiempo de procesamiento de IA
             setTimeout(() => {
-                countdownNumber.style.animation = 'pulse 1s ease-in-out';
-            }, 10);
-        } else {
-            clearInterval(countdownInterval);
-            countdownContainer.style.display = "none";
-            showQuestion();
+                try {
+                    // Seleccionar categoría aleatoria
+                    const categories = Object.keys(aiQuestionBank);
+                    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+                    const categoryQuestions = aiQuestionBank[randomCategory];
+                    
+                    // Seleccionar pregunta aleatoria de la categoría
+                    const randomQuestion = categoryQuestions[Math.floor(Math.random() * categoryQuestions.length)];
+                    
+                    // Preparar todas las opciones
+                    const allOptions = [randomQuestion.correct, ...randomQuestion.incorrect];
+                    
+                    // Mezclar opciones
+                    for (let i = allOptions.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
+                    }
+                    
+                    // Encontrar el índice de la respuesta correcta
+                    const correctIndex = allOptions.indexOf(randomQuestion.correct);
+                    
+                    // Llenar el formulario
+                    document.getElementById('new-question').value = randomQuestion.question;
+                    document.getElementById('option1').value = allOptions[0];
+                    document.getElementById('option2').value = allOptions[1];
+                    document.getElementById('option3').value = allOptions[2];
+                    document.getElementById('option4').value = allOptions[3];
+                    document.getElementById('correct-answer').value = correctIndex.toString();
+                    
+                    // Restaurar botón
+                    btn.disabled = false;
+                    btnText.innerHTML = '<i class="fas fa-robot"></i> Generar con IA';
+                    
+                    // Mostrar notificación de éxito
+                    showNotification('¡Pregunta generada exitosamente!', 'success');
+                    
+                    // Agregar animación de éxito al formulario
+                    const form = document.querySelector('.question-form');
+                    form.style.animation = 'pulse 0.5s ease-out';
+                    setTimeout(() => {
+                        form.style.animation = '';
+                    }, 500);
+                    
+                } catch (error) {
+                    console.error('Error al generar pregunta:', error);
+                    btn.disabled = false;
+                    btnText.innerHTML = '<i class="fas fa-robot"></i> Generar con IA';
+                    showNotification('Error al generar pregunta. Inténtalo de nuevo.', 'error');
+                }
+            }, 1500);
         }
-    }, 1000);
-}
 
-function showQuestion(){
-    if(players.length===0) return;
-    
-    // Ocultar countdown
-    document.getElementById("countdown-container").style.display = "none";
-    
-    // Elegir pregunta aleatoria
-    const questionIndex = Math.floor(Math.random()*questions.length);
-    currentQuestion = questions[questionIndex];
-    
-    // Sincronizar pregunta actual
-    if (isOnline) {
-        database.ref('gameData/currentQuestion').set(currentQuestion);
-    }
-    
-    // Mostrar pregunta
-    document.getElementById("question-text").textContent = `${currentQuestion.q}`;
-    document.getElementById("question-text").style.display = "block";
-    
-    const optionsDiv = document.getElementById("options");
-    optionsDiv.innerHTML = "";
-    optionsDiv.style.display = "grid";
-    questionAnswered = false;
-    
-    currentQuestion.a.forEach((opt,i)=>{
-        const btn = document.createElement("button");
-        btn.textContent = opt;
-        btn.className="option fade";
-        btn.onclick = () => {
-            if (!questionAnswered) {
-                checkAnswer(i, currentQuestion.correct);
-                questionAnswered = true;
-                // Sincronizar respuesta
-                syncToFirebase();
-            }
-        };
-        optionsDiv.appendChild(btn);
-    });
-    
-    document.getElementById("result").textContent = "";
-    document.getElementById("result").style.display = "flex";
-    document.getElementById("result").className = "fade";
-}
-
-function checkAnswer(selected, correct){
-    const player = players[currentPlayerIndex];
-    const resultEl = document.getElementById("result");
-    const options = document.querySelectorAll(".option");
-    
-    if(selected===correct){
-        player.correct++;
-        resultEl.textContent=`¡Correcto! +1 punto`;
-        resultEl.className = "fade correct";
-        options[selected].classList.add("correct");
-    } else {
-        player.lives--;
-        resultEl.textContent=`Incorrecto. Te quedan ${player.lives} vidas`;
-        resultEl.className = "fade incorrect";
-        options[selected].classList.add("incorrect");
-        options[correct].classList.add("correct");
-        
-        // Reproducir sonido de respuesta incorrecta
-        speakWrongAnswer(currentQuestion.a[correct]);
-        
-        if(player.lives===0){
-            showEliminationAnimation(player);
-            return;
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                background: ${type === 'success' ? 'var(--secondary-color)' : 'var(--accent-color)'};
+                color: white;
+                border-radius: var(--border-radius);
+                font-family: 'Poppins', sans-serif;
+                font-weight: 700 !important;
+                box-shadow: var(--shadow);
+                z-index: 9999;
+                animation: fadeIn 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
         }
-    }
-    
-    renderPlayers();
-    
-    // Esperar 3 segundos y luego pasar al siguiente turno automáticamente
-    setTimeout(() => {
-        nextTurn();
-    }, 3000);
-}
 
-function showEliminationAnimation(player) {
-    const container = document.getElementById("elimination-container");
-    const photo = document.getElementById("elimination-photo");
-    const name = document.getElementById("elimination-name");
-    const message = document.getElementById("elimination-message");
-    const stats = document.getElementById("elimination-stats");
-    
-    // Configurar datos del jugador eliminado
-    name.textContent = player.name.toUpperCase();
-    message.textContent = soundSettings.eliminationMessage.replace('{nombre}', player.name).toUpperCase();
-    stats.textContent = `Respondiste ${player.correct} preguntas correctamente`;
-    
-    // Usar foto del jugador si existe, sino usar imagen por defecto
-    if (playerPhotos[player.name]) {
-        photo.src = playerPhotos[player.name];
-    } else {
-        photo.src = `https://picsum.photos/seed/${player.name}/400/400.jpg`;
-    }
-    
-    // Crear partículas animadas
-    createParticles();
-    
-    // Mostrar animación
-    container.style.display = "flex";
-    
-    // Reproducir sonido de eliminación
-    speakElimination(player.name);
-    
-    // Vibración si está disponible
-    if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200]);
-    }
-}
-
-function createParticles() {
-    const particlesContainer = document.getElementById("particles");
-    particlesContainer.innerHTML = "";
-    
-    for (let i = 0; i < 50; i++) {
-        const particle = document.createElement("div");
-        particle.className = "particle";
-        particle.style.left = Math.random() * 100 + "%";
-        particle.style.animationDelay = Math.random() * 3 + "s";
-        particle.style.backgroundColor = ['#ff7675', '#fd79a8', '#fdcb6e', '#6c5ce7'][Math.floor(Math.random() * 4)];
-        particlesContainer.appendChild(particle);
-    }
-}
-
-function createWinnerParticles() {
-    const particlesContainer = document.getElementById("winner-particles");
-    particlesContainer.innerHTML = "";
-    
-    for (let i = 0; i < 100; i++) {
-        const particle = document.createElement("div");
-        particle.className = "winner-particle";
-        particle.style.left = Math.random() * 100 + "%";
-        particle.style.animationDelay = Math.random() * 3 + "s";
-        particle.style.backgroundColor = ['#6c5ce7', '#fd79a8', '#fdcb6e', '#55efc4', '#ff7675'][Math.floor(Math.random() * 5)];
-        particlesContainer.appendChild(particle);
-    }
-}
-
-function closeElimination() {
-    document.getElementById("elimination-container").style.display = "none";
-    nextTurn();
-}
-
-function nextTurn(){
-    const activePlayers = players.filter(p=>p.lives>0);
-    if(activePlayers.length===1){
-        showWinnerAnimation(activePlayers[0]);
-        return;
-    }
-
-    do{
-        currentPlayerIndex = (currentPlayerIndex+1) % players.length;
-    } while(players[currentPlayerIndex].lives===0);
-    showPlayerTurn();
-    
-    // Sincronizar turno
-    syncToFirebase();
-}
-
-function showWinnerAnimation(player) {
-    const container = document.getElementById("winner-container");
-    const photo = document.getElementById("winner-photo");
-    const name = document.getElementById("winner-name");
-    const message = document.getElementById("winner-message");
-    const stats = document.getElementById("winner-stats");
-    
-    // Configurar datos del ganador
-    name.textContent = player.name.toUpperCase();
-    message.textContent = soundSettings.victoryMessage.replace('{nombre}', player.name).toUpperCase();
-    stats.textContent = `Eres el campeón con ${player.correct} puntos`;
-    
-    // Usar foto del jugador si existe, sino usar imagen por defecto
-    if (playerPhotos[player.name]) {
-        photo.src = playerPhotos[player.name];
-    } else {
-        photo.src = `https://picsum.photos/seed/${player.name}/400/400.jpg`;
-    }
-    
-    // Crear partículas animadas
-    createWinnerParticles();
-    
-    // Mostrar animación
-    container.style.display = "flex";
-    
-    // Reproducir sonido de victoria
-    speakVictory(player.name);
-    
-    // Vibración de celebración
-    if (navigator.vibrate) {
-        navigator.vibrate([100, 50, 100, 50, 100, 50, 200]);
-    }
-}
-
-function resetGame() {
-    players.forEach(p => {
-        p.lives = 3;
-        p.correct = 0;
-    });
-    currentPlayerIndex = 0;
-    document.getElementById("winner-container").style.display = "none";
-    renderPlayers();
-    showPlayerTurn();
-    
-    // Sincronizar reinicio
-    syncToFirebase();
-}
-
-// ====== FUNCIONES DE LOGIN ======
-function showLogin() {
-    document.getElementById("login-container").style.display = "flex";
-}
-
-function hideLogin() {
-    document.getElementById("login-container").style.display = "none";
-    document.getElementById("username").value = "";
-    document.getElementById("password").value = "";
-}
-
-function login() {
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-    
-    if(username === "admin" && password === "clavito01") {
-        isAdminLoggedIn = true;
-        hideLogin();
-        showAdminPanel();
-    } else {
-        alert("Usuario o contraseña incorrectos");
-    }
-}
-
-function logout() {
-    isAdminLoggedIn = false;
-    document.getElementById("admin-container").style.display = "none";
-}
-
-function showAdminPanel() {
-    document.getElementById("admin-container").style.display = "flex";
-    loadQuestionsList();
-    loadPlayerPhotos();
-    loadSoundSettings();
-}
-
-// ====== FUNCIONES DE ADMINISTRACIÓN ======
-function switchTab(tab) {
-    // Ocultar todos los tabs
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-    });
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // Mostrar el tab seleccionado
-    if(tab === 'add') {
-        document.getElementById('add-tab').classList.add('active');
-        document.querySelectorAll('.tab-btn')[0].classList.add('active');
-    } else if(tab === 'view') {
-        document.getElementById('view-tab').classList.add('active');
-        document.querySelectorAll('.tab-btn')[1].classList.add('active');
-        loadQuestionsList();
-    } else if(tab === 'photos') {
-        document.getElementById('photos-tab').classList.add('active');
-        document.querySelectorAll('.tab-btn')[2].classList.add('active');
-        loadPlayerPhotos();
-    } else if(tab === 'sounds') {
-        document.getElementById('sounds-tab').classList.add('active');
-        document.querySelectorAll('.tab-btn')[3].classList.add('active');
-        loadSoundSettings();
-    }
-}
-
-function loadSoundSettings() {
-    // Intentar cargar desde localStorage primero
-    const savedSettings = localStorage.getItem('soundSettings');
-    if (savedSettings) {
-        try {
-            const localSettings = JSON.parse(savedSettings);
-            // Actualizar las configuraciones globales
-            soundSettings = {
-                ...soundSettings,
-                ...localSettings
+        function saveQuestion(event) {
+            event.preventDefault();
+            
+            const question = document.getElementById("new-question").value;
+            const option1 = document.getElementById("option1").value;
+            const option2 = document.getElementById("option2").value;
+            const option3 = document.getElementById("option3").value;
+            const option4 = document.getElementById("option4").value;
+            const correct = parseInt(document.getElementById("correct-answer").value);
+            
+            const newQuestion = {
+                q: question,
+                a: [option1, option2, option3, option4],
+                correct: correct
             };
-        } catch (e) {
-            console.error('Error al cargar configuraciones desde localStorage:', e);
+            
+            questions.push(newQuestion);
+            localStorage.setItem('quizQuestions', JSON.stringify(questions));
+            
+            document.getElementById("new-question").value = "";
+            document.getElementById("option1").value = "";
+            document.getElementById("option2").value = "";
+            document.getElementById("option3").value = "";
+            document.getElementById("option4").value = "";
+            document.getElementById("correct-answer").value = "";
+            
+            showNotification("Pregunta guardada exitosamente", 'success');
+            
+            syncToFirebase();
+            
+            switchTab('view');
         }
-    }
-    
-    // Actualizar la interfaz con los valores actuales
-    document.getElementById('elimination-message-input').value = soundSettings.eliminationMessage || "Estas eliminado mi wawita";
-    document.getElementById('victory-message-input').value = soundSettings.victoryMessage || "Felicidades Ganastes mi wawita";
-    document.getElementById('wrong-answer-input').value = soundSettings.wrongAnswerMessage || "Respuesta incorrecta. La respuesta correcta era {respuesta}";
-    
-    // Cargar voces
-    loadVoices();
-    
-    // Forzar sincronización con Firebase si estamos online
-    if (isOnline) {
-        syncToFirebase();
-    }
-}
 
-function generateAIQuestion() {
-    const btn = document.getElementById('ai-generate-btn');
-    const btnText = document.getElementById('ai-btn-text');
-    
-    // Mostrar animación de carga
-    btn.classList.add('ai-generating');
-    btnText.innerHTML = '<span class="ai-loading"></span> Generando pregunta...';
-    
-    // Simular tiempo de procesamiento de IA
-    setTimeout(() => {
-        // Seleccionar categoría aleatoria
-        const categories = Object.keys(aiQuestionBank);
-        const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-        const categoryQuestions = aiQuestionBank[randomCategory];
-        
-        // Seleccionar pregunta aleatoria de la categoría
-        const randomQuestion = categoryQuestions[Math.floor(Math.random() * categoryQuestions.length)];
-        
-        // Preparar todas las opciones
-        const allOptions = [randomQuestion.correct, ...randomQuestion.incorrect];
-        
-        // Mezclar opciones
-        for (let i = allOptions.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [allOptions[i], allOptions[j]] = [allOptions[j], allOptions[i]];
+        function loadQuestionsList() {
+            const questionsList = document.getElementById("questions-list");
+            questionsList.innerHTML = "";
+            
+            questions.forEach((q, index) => {
+                const questionItem = document.createElement("div");
+                questionItem.className = "question-item";
+                
+                let optionsHTML = "";
+                q.a.forEach((option, i) => {
+                    const isCorrect = i === q.correct ? "correct" : "";
+                    optionsHTML += `<p class="${isCorrect}">${option}</p>`;
+                });
+                
+                questionItem.innerHTML = `
+                    <h4>${index + 1}. ${q.q}</h4>
+                    ${optionsHTML}
+                    <button class="btn btn-danger delete-btn" onclick="deleteQuestion(${index})">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                `;
+                
+                questionsList.appendChild(questionItem);
+            });
         }
-        
-        // Encontrar el índice de la respuesta correcta
-        const correctIndex = allOptions.indexOf(randomQuestion.correct);
-        
-        // Llenar el formulario
-        document.getElementById('new-question').value = randomQuestion.question;
-        document.getElementById('option1').value = allOptions[0];
-        document.getElementById('option2').value = allOptions[1];
-        document.getElementById('option3').value = allOptions[2];
-        document.getElementById('option4').value = allOptions[3];
-        document.getElementById('correct-answer').value = correctIndex.toString();
-        
-        // Restaurar botón
-        btn.classList.remove('ai-generating');
-        btnText.innerHTML = '<i class="fas fa-robot"></i> Generar con IA';
-        
-        // Mostrar notificación
-        showNotification('¡Pregunta generada exitosamente!', 'success');
-    }, 1500);
-}
 
-function showNotification(message, type) {
-    // Crear elemento de notificación
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 25px;
-        background: ${type === 'success' ? 'linear-gradient(90deg, #55efc4, #00b894)' : 'linear-gradient(90deg, #ff7675, #d63031)'};
-        color: white;
-        border-radius: 15px;
-        font-family: 'Fredoka', sans-serif;
-        font-weight: 600;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        z-index: 9999;
-        animation: slideIn 0.3s ease-out;
-    `;
-    notification.textContent = message;
-    
-    // Agregar al DOM
-    document.body.appendChild(notification);
-    
-    // Eliminar después de 3 segundos
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-out';
-        setTimeout(() => {
-            notification.remove();
-        }, 300);
-    }, 3000);
-}
-
-function saveQuestion(event) {
-    event.preventDefault();
-    
-    const question = document.getElementById("new-question").value;
-    const option1 = document.getElementById("option1").value;
-    const option2 = document.getElementById("option2").value;
-    const option3 = document.getElementById("option3").value;
-    const option4 = document.getElementById("option4").value;
-    const correct = parseInt(document.getElementById("correct-answer").value);
-    
-    const newQuestion = {
-        q: question,
-        a: [option1, option2, option3, option4],
-        correct: correct
-    };
-    
-    questions.push(newQuestion);
-    localStorage.setItem('quizQuestions', JSON.stringify(questions));
-    
-    // Limpiar formulario
-    document.getElementById("new-question").value = "";
-    document.getElementById("option1").value = "";
-    document.getElementById("option2").value = "";
-    document.getElementById("option3").value = "";
-    document.getElementById("option4").value = "";
-    document.getElementById("correct-answer").value = "";
-    
-    showNotification("Pregunta guardada exitosamente", 'success');
-    
-    // Sincronizar con Firebase
-    syncToFirebase();
-    
-    // Cambiar a la vista de preguntas
-    switchTab('view');
-}
-
-function loadQuestionsList() {
-    const questionsList = document.getElementById("questions-list");
-    questionsList.innerHTML = "";
-    
-    questions.forEach((q, index) => {
-        const questionItem = document.createElement("div");
-        questionItem.className = "question-item";
-        
-        let optionsHTML = "";
-        q.a.forEach((option, i) => {
-            const isCorrect = i === q.correct ? "correct" : "";
-            optionsHTML += `<p class="${isCorrect}">${option}</p>`;
-        });
-        
-        questionItem.innerHTML = `
-            <h4>${index + 1}. ${q.q}</h4>
-            ${optionsHTML}
-            <button class="delete-question-btn" onclick="deleteQuestion(${index})"><i class="fas fa-trash"></i> Eliminar</button>
-        `;
-        
-        questionsList.appendChild(questionItem);
-    });
-}
-
-function deleteQuestion(index) {
-    if(confirm("¿Estás seguro de que quieres eliminar esta pregunta?")) {
-        questions.splice(index, 1);
-        localStorage.setItem('quizQuestions', JSON.stringify(questions));
-        loadQuestionsList();
-        showNotification("Pregunta eliminada exitosamente", 'success');
-        
-        // Sincronizar con Firebase
-        syncToFirebase();
-    }
-}
-
-// ====== FUNCIONES DE FOTOS DE JUGADORES ======
-function handlePhotoUpload(event) {
-    const file = event.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            // Crear modal para ingresar nombre del jugador
-            const playerName = prompt("Ingresa el nombre del jugador para esta foto:");
-            if (playerName) {
-                // Guardar foto en localStorage
-                playerPhotos[playerName] = e.target.result;
-                localStorage.setItem('playerPhotos', JSON.stringify(playerPhotos));
+        function deleteQuestion(index) {
+            if(confirm("¿Estás seguro de que quieres eliminar esta pregunta?")) {
+                questions.splice(index, 1);
+                localStorage.setItem('quizQuestions', JSON.stringify(questions));
+                loadQuestionsList();
+                showNotification("Pregunta eliminada exitosamente", 'success');
                 
-                // Recargar grid de fotos
-                loadPlayerPhotos();
-                showNotification(`Foto agregada para ${playerName}`, 'success');
-                
-                // Sincronizar con Firebase
                 syncToFirebase();
             }
-        };
-        reader.readAsDataURL(file);
-    }
-}
+        }
 
-function loadPlayerPhotos() {
-    const photosGrid = document.getElementById("photos-grid");
-    
-    // Limpiar grid excepto el botón de agregar
-    const addButton = photosGrid.querySelector('.add-photo-card');
-    photosGrid.innerHTML = '';
-    
-    // Agregar tarjetas de fotos existentes
-    Object.entries(playerPhotos).forEach(([name, photoUrl]) => {
-        const photoCard = document.createElement("div");
-        photoCard.className = "photo-card";
-        photoCard.innerHTML = `
-            <img src="${photoUrl}" alt="${name}" class="photo-preview">
-            <input type="text" class="player-name-input" value="${name}" onchange="updatePlayerName('${name}', this.value)">
-            <button class="delete-photo-btn" onclick="deletePlayerPhoto('${name}')">
-                <i class="fas fa-trash"></i> Eliminar
-            </button>
+        // ===== FUNCIÓN DE CONFIRMACIÓN DE REINICIO =====
+        function confirmResetGame() {
+            const confirmDialog = document.createElement('div');
+            confirmDialog.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                color: var(--dark-color);
+                padding: 30px;
+                border-radius: var(--border-radius);
+                z-index: 10000;
+                text-align: center;
+                font-family: 'Poppins', sans-serif;
+                font-weight: 700 !important;
+                box-shadow: var(--shadow);
+                animation: fadeIn 0.3s ease-out;
+                max-width: 400px;
+                width: 90%;
+            `;
+            
+            confirmDialog.innerHTML = `
+                <h2 style="margin-bottom: 20px; color: var(--warning-color); font-weight: 800 !important;">
+                    <i class="fas fa-exclamation-triangle"></i> ¿Estás seguro de reiniciar el juego?
+                </h2>
+                <p style="margin-bottom: 25px; line-height: 1.5;">
+                    Se perderán todos los puntos y vidas actuales
+                </p>
+                <p style="margin-bottom: 25px;">
+                    Los jugadores volverán a empezar desde el principio
+                </p>
+                <div style="display: flex; gap: 15px; justify-content: center;">
+                    <button class="btn btn-secondary" onclick="cancelResetGame()">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button class="btn btn-danger" onclick="executeResetGame()">
+                        <i class="fas fa-redo"></i> Sí, reiniciar
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(confirmDialog);
+        }
+
+        function cancelResetGame() {
+            const confirmDialog = document.querySelector('div[style*="position: fixed"]');
+            if (confirmDialog) {
+                confirmDialog.remove();
+            }
+        }
+
+        function executeResetGame() {
+            const confirmDialog = document.querySelector('div[style*="position: fixed"]');
+            if (confirmDialog) {
+                confirmDialog.remove();
+            }
+            
+            players.forEach(p => {
+                p.lives = 3;
+                p.correct = 0;
+            });
+            currentPlayerIndex = 0;
+            document.getElementById("winner-container").style.display = "none";
+            renderPlayers();
+            showPlayerTurn();
+            
+            syncToFirebase();
+            
+            showNotification('¡Juego reiniciado exitosamente!', 'success');
+        }
+
+        // ===== INICIALIZACIÓN DE SÍNTESIS DE VOZ =====
+        function initSpeechSynthesis() {
+            if ('speechSynthesis' in window) {
+                if (window.chrome) {
+                    window.speechSynthesis.getVoices();
+                }
+                
+                window.speechSynthesis.onvoiceschanged = function() {
+                    loadVoices();
+                };
+                
+                setTimeout(() => {
+                    loadVoices();
+                }, 500);
+            } else {
+                console.warn('La síntesis de voz no es compatible con este navegador');
+                soundEnabled = false;
+                const soundToggle = document.getElementById('sound-toggle');
+                const soundText = document.getElementById('sound-text');
+                const icon = soundToggle.querySelector('i');
+                
+                soundToggle.classList.add('muted');
+                soundText.textContent = 'Sonido NO SOPORTADO';
+                icon.className = 'fas fa-volume-mute';
+                soundToggle.disabled = true;
+            }
+        }
+
+        // Agregar animación fadeOut
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
         `;
-        photosGrid.appendChild(photoCard);
-    });
-    
-    // Agregar botón de agregar nueva foto
-    photosGrid.appendChild(addButton);
-}
+        document.head.appendChild(style);
 
-function updatePlayerName(oldName, newName) {
-    if (newName && newName !== oldName) {
-        const photoUrl = playerPhotos[oldName];
-        delete playerPhotos[oldName];
-        playerPhotos[newName] = photoUrl;
-        localStorage.setItem('playerPhotos', JSON.stringify(playerPhotos));
-        loadPlayerPhotos();
-        showNotification("Nombre actualizado", 'success');
-        
-        // Sincronizar con Firebase
-        syncToFirebase();
-    }
-}
-
-function deletePlayerPhoto(name) {
-    if (confirm(`¿Estás seguro de que quieres eliminar la foto de ${name}?`)) {
-        delete playerPhotos[name];
-        localStorage.setItem('playerPhotos', JSON.stringify(playerPhotos));
-        loadPlayerPhotos();
-        showNotification("Foto eliminada", 'success');
-        
-        // Sincronizar con Firebase
-        syncToFirebase();
-    }
-}
-
-// Permitir login con Enter
-document.getElementById("password").addEventListener("keypress", function(event) {
-    if (event.key === "Enter") {
-        login();
-    }
-});
-
-// Agregar animaciones CSS para notificaciones
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
-
-// ====== FUNCIÓN DE CONFIRMACIÓN DE REINICIO ======
-function confirmResetGame() {
-    // Mostrar diálogo de confirmación
-    const confirmDialog = document.createElement('div');
-    confirmDialog.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0, 0,0,0.9);
-        color: white;
-        padding: 30px;
-        border-radius: 20px;
-        z-index: 10000;
-        text-align: center;
-        font-family: 'Fredoka', sans-serif;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        animation: fadeIn 0.3s ease-out;
-    `;
-    
-    confirmDialog.innerHTML = `
-        <h2 style="margin-bottom: 20px; color: var(--accent); font-size: 1.8rem;">
-            <i class="fas fa-exclamation-triangle"></i> ¿Estás seguro de reiniciar el juego?
-        </h2>
-        <p style="margin-bottom: 25px; font-size: 1.1rem; line-height: 1.5;">
-            Se perderán todos los puntos y vidas actuales
-        </p>
-        <p style="margin-bottom: 25px; font-size: 1rem;">
-            Los jugadores volverán a empezar desde el principio
-        </p>
-        <div style="display: flex; gap: 15px; justify-content: center;">
-            <button onclick="cancelResetGame()" style="background: var(--light); color: var(--dark);">
-                <i class="fas fa-times"></i> Cancelar
-            </button>
-            <button onclick="executeResetGame()" style="background: var(--danger); color: white;">
-                <i class="fas fa-redo"></i> Sí, reiniciar
-            </button>
-        </div>
-    `;
-    
-    document.body.appendChild(confirmDialog);
-}
-
-function cancelResetGame() {
-    // Eliminar el diálogo
-    const confirmDialog = document.querySelector('div[style*="position: fixed"]');
-    if (confirmDialog) {
-        confirmDialog.remove();
-    }
-}
-
-function executeResetGame() {
-    // Eliminar el diálogo
-    const confirmDialog = document.querySelector('div[style*="position: fixed"]');
-    if (confirmDialog) {
-        confirmDialog.remove();
-    }
-    
-    // Realizar el reinicio
-    players.forEach(p => {
-        p.lives = 3;
-        p.correct = 0;
-    });
-    currentPlayerIndex = 0;
-    document.getElementById("winner-container").style.display = "none";
-    renderPlayers();
-    showPlayerTurn();
-    
-    // Sincronizar reinicio
-    syncToFirebase();
-    
-    // Mostrar notificación
-    showNotification('¡Juego reiniciado exitosamente!', 'success');
-}
-
-// ====== INICIALIZACIÓN DE SÍNTESIS DE VOZ ======
-function initSpeechSynthesis() {
-    // Verificar si el navegador soporta síntesis de voz
-    if ('speechSynthesis' in window) {
-        // Forzar carga de voces en Chrome
-        if (window.chrome) {
-            window.speechSynthesis.getVoices();
-        }
-        
-        // Configurar evento para cargar voces cuando estén disponibles
-        window.speechSynthesis.onvoiceschanged = function() {
-            loadVoices();
-        };
-        
-        // Intentar cargar voces después de un pequeño retraso
-        setTimeout(() => {
-            loadVoices();
-        }, 500);
-    } else {
-        console.warn('La síntesis de voz no es compatible con este navegador');
-        // Deshabilitar funciones de voz
-        soundEnabled = false;
-        const soundToggle = document.getElementById('sound-toggle');
-        const soundText = document.getElementById('sound-text');
-        const icon = soundToggle.querySelector('i');
-        
-        soundToggle.classList.add('muted');
-        soundText.textContent = 'Sonido NO SOPORTADO';
-        icon.className = 'fas fa-volume-mute';
-        soundToggle.disabled = true;
-    }
-}
-
-// ====== INICIO ======
-document.addEventListener('DOMContentLoaded', function() {
-    // Cargar datos desde localStorage como respaldo
-    const savedQuestions = localStorage.getItem('quizQuestions');
-    const savedSoundSettings = localStorage.getItem('soundSettings');
-    const savedPlayerPhotos = localStorage.getItem('playerPhotos');
-    
-    if (savedQuestions) questions = JSON.parse(savedQuestions);
-    if (savedSoundSettings) soundSettings = JSON.parse(savedSoundSettings);
-    if (savedPlayerPhotos) playerPhotos = JSON.parse(savedPlayerPhotos);
-    
-    renderPlayers();
-    showPlayerTurn();
-    
-    // Inicializar síntesis de voz
-    initSpeechSynthesis();
-    
-    // Configurar Firebase
-    setupFirebaseListeners();
-    
-    // Intentar cargar desde Firebase
-    if (isOnline) {
-        loadFromFirebase();
-    } else {
-        // Si no estamos online, marcar que la carga inicial está completa
-        initialLoadComplete = true;
-    }
-});
-</script>
+        // ===== INICIO =====
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedQuestions = localStorage.getItem('quizQuestions');
+            const savedSoundSettings = localStorage.getItem('soundSettings');
+            
+            if (savedQuestions) questions = JSON.parse(savedQuestions);
+            if (savedSoundSettings) soundSettings = JSON.parse(savedSoundSettings);
+            
+            renderPlayers();
+            showPlayerTurn();
+            
+            initSpeechSynthesis();
+            setupFirebaseListeners();
+            
+            if (isOnline) {
+                loadFromFirebase();
+            } else {
+                initialLoadComplete = true;
+            }
+        });
+    </script>
 </body>
 </html>

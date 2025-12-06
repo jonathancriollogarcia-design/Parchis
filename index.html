@@ -57,6 +57,8 @@ body {
     align-items: center;
     gap: 8px;
     transition: all 0.3s;
+    -webkit-transition: all 0.3s;
+    -moz-transition: all 0.3s;
 }
 
 .connection-indicator.connected {
@@ -1254,7 +1256,6 @@ button:active {
     <span></span>
     <span></span>
     <span></span>
-    <span></span>
 </div>
 
 <!-- Header -->
@@ -1483,23 +1484,24 @@ let players = [
 let currentPlayerIndex = 0;
 let questionAnswered = false;
 let isAdminLoggedIn = false;
-let playerPhotos = JSON.parse(localStorage.getItem('playerPhotos')) || {};
+let playerPhotos = {};
 let soundEnabled = true;
 let currentQuestion = null;
 let countdownInterval = null;
 let isOnline = false;
 let syncInProgress = false;
+let initialLoadComplete = false;
 
-// Cargar configuración de sonido desde localStorage
-let soundSettings = JSON.parse(localStorage.getItem('soundSettings')) || {
+// Cargar configuración de sonido desde localStorage como respaldo
+let soundSettings = {
     selectedVoice: null,
     eliminationMessage: "¡Oh pobrecito! {nombre}, estás eliminado",
     victoryMessage: "¡We are the champions! {nombre} eres el campeón",
     wrongAnswerMessage: "Respuesta incorrecta. La respuesta correcta era {respuesta}"
 };
 
-// Cargar preguntas guardadas en localStorage
-let questions = JSON.parse(localStorage.getItem('quizQuestions')) || [
+// Cargar preguntas guardadas en localStorage como respaldo
+let questions = [
     { q:"¿Cuál es la capital de Francia?", a:["Madrid","París","Roma","Berlín"], correct:1 },
     { q:"¿Quién escribió 'Cien años de soledad'?", a:["Gabriel García Márquez","Mario Vargas Llosa","Pablo Neruda","Julio Cortázar"], correct:0 },
     { q:"¿Cuál es el planeta más grande del sistema solar?", a:["Saturno","Júpiter","Marte","Neptuno"], correct:1 },
@@ -1568,7 +1570,7 @@ const aiQuestionBank = {
     ]
 };
 
-// ====== FUNCIONES DE FIREBASE ======
+// ====== FUNCIONES DE FIREBASE MEJORADAS ======
 function updateConnectionStatus(connected) {
     isOnline = connected;
     const indicator = document.getElementById('connection-indicator');
@@ -1577,10 +1579,51 @@ function updateConnectionStatus(connected) {
     if (connected) {
         indicator.className = 'connection-indicator connected';
         text.textContent = 'Conectado - Sincronización en tiempo real activa';
+        
+        // Si es la primera vez que nos conectamos, cargar datos desde Firebase
+        if (!initialLoadComplete) {
+            loadFromFirebase();
+        }
     } else {
         indicator.className = 'connection-indicator disconnected';
         text.textContent = 'Desconectado - Modo offline';
     }
+}
+
+// Nueva función para cargar datos desde Firebase
+function loadFromFirebase() {
+    database.ref('gameData').once('value', (snapshot) => {
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            
+            // Actualizar datos locales con los de Firebase
+            if (data.players) players = data.players;
+            if (data.currentPlayerIndex !== undefined) currentPlayerIndex = data.currentPlayerIndex;
+            if (data.questions) questions = data.questions;
+            if (data.soundSettings) soundSettings = data.soundSettings;
+            if (data.playerPhotos) playerPhotos = data.playerPhotos;
+            
+            // Guardar en localStorage como respaldo
+            localStorage.setItem('quizQuestions', JSON.stringify(questions));
+            localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
+            localStorage.setItem('playerPhotos', JSON.stringify(playerPhotos));
+            
+            // Actualizar UI
+            renderPlayers();
+            
+            // Cargar configuraciones de sonido
+            loadSoundSettings();
+            
+            // Marcar que la carga inicial está completa
+            initialLoadComplete = true;
+            
+            console.log('Datos cargados desde Firebase');
+        } else {
+            // Si no hay datos en Firebase, usar los locales y sincronizarlos
+            initialLoadComplete = true;
+            syncToFirebase();
+        }
+    });
 }
 
 function syncToFirebase() {
@@ -1595,12 +1638,13 @@ function syncToFirebase() {
         players: players,
         currentPlayerIndex: currentPlayerIndex,
         questions: questions,
-        soundSettings: soundSettings,  // Asegurarse de incluir las configuraciones de sonido
+        soundSettings: soundSettings,
         playerPhotos: playerPhotos,
         timestamp: Date.now()
     };
     
-    database.ref('gameData').set(gameData, (error) => {
+    // Usar update en lugar de set para sobrescribir solo los datos necesarios
+    database.ref('gameData').update(gameData, (error) => {
         syncInProgress = false;
         if (error) {
             console.error('Error al sincronizar:', error);
@@ -1613,6 +1657,8 @@ function syncToFirebase() {
                     document.getElementById('connection-text').textContent = 'Conectado - Sincronización en tiempo real activa';
                 }
             }, 1000);
+            
+            console.log('Datos sincronizados con Firebase');
         }
     });
 }
@@ -1621,6 +1667,36 @@ function setupFirebaseListeners() {
     // Escuchar cambios en la conexión
     database.ref('.info/connected').on('value', (snapshot) => {
         updateConnectionStatus(snapshot.val());
+    });
+    
+    // Escuchar cambios específicos en las configuraciones de sonido
+    database.ref('gameData/soundSettings').on('value', (snapshot) => {
+        if (snapshot.exists() && isOnline) {
+            const newSoundSettings = snapshot.val();
+            
+            // Verificar si hay cambios reales
+            const hasChanges = JSON.stringify(newSoundSettings) !== JSON.stringify(soundSettings);
+            
+            if (hasChanges) {
+                // Actualizar configuraciones locales
+                soundSettings = newSoundSettings;
+                
+                // Guardar en localStorage
+                localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
+                
+                // Actualizar UI si el panel de administración está abierto
+                if (document.getElementById('admin-container').style.display === 'flex') {
+                    document.getElementById('elimination-message-input').value = soundSettings.eliminationMessage;
+                    document.getElementById('victory-message-input').value = soundSettings.victoryMessage;
+                    document.getElementById('wrong-answer-input').value = soundSettings.wrongAnswerMessage;
+                    
+                    // Recargar voces si cambió la selección
+                    loadVoices();
+                }
+                
+                console.log('Configuraciones de sonido actualizadas desde Firebase');
+            }
+        }
     });
     
     // Escuchar cambios en los datos del juego
@@ -1637,19 +1713,6 @@ function setupFirebaseListeners() {
                 if (data.currentPlayerIndex !== undefined) currentPlayerIndex = data.currentPlayerIndex;
                 if (data.questions) questions = data.questions;
                 if (data.playerPhotos) playerPhotos = data.playerPhotos;
-                
-                // Actualizar configuración de sonido y recargar voces si es necesario
-                if (data.soundSettings) {
-                    const previousVoice = soundSettings.selectedVoice;
-                    soundSettings = data.soundSettings;
-                    
-                    // Si cambió la voz, recargar las voces
-                    if (previousVoice !== soundSettings.selectedVoice) {
-                        setTimeout(() => {
-                            loadVoices();
-                        }, 100);
-                    }
-                }
                 
                 // Actualizar UI
                 renderPlayers();
@@ -1699,7 +1762,7 @@ function showQuestionFromFirebase() {
     document.getElementById("result").className = "fade";
 }
 
-// ====== FUNCIONES DE SONIDO ======
+// ====== FUNCIONES DE SONIDO MEJORADAS ======
 function toggleSound() {
     soundEnabled = !soundEnabled;
     const soundToggle = document.getElementById('sound-toggle');
@@ -1949,8 +2012,16 @@ function updateVoiceSelection() {
     // Guardar en localStorage
     localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
     
-    // Sincronizar con Firebase inmediatamente
-    syncToFirebase();
+    // Sincronizar específicamente las configuraciones de sonido con Firebase
+    database.ref('gameData/soundSettings').set(soundSettings, (error) => {
+        if (error) {
+            console.error('Error al guardar configuraciones de sonido:', error);
+            showNotification('Error al guardar configuraciones de sonido', 'error');
+        } else {
+            console.log('Configuraciones de voz guardadas en Firebase');
+            showNotification('Voz actualizada exitosamente', 'success');
+        }
+    });
     
     // Probar la voz seleccionada
     const testMessage = "Esta es la voz seleccionada para el juego";
@@ -1965,10 +2036,16 @@ function saveSoundSettings() {
     // Guardar en localStorage
     localStorage.setItem('soundSettings', JSON.stringify(soundSettings));
     
-    // Sincronizar con Firebase inmediatamente
-    syncToFirebase();
-    
-    showNotification('Configuración de sonido guardada exitosamente', 'success');
+    // Sincronizar específicamente las configuraciones de sonido con Firebase
+    database.ref('gameData/soundSettings').set(soundSettings, (error) => {
+        if (error) {
+            console.error('Error al guardar configuraciones de sonido:', error);
+            showNotification('Error al guardar configuraciones de sonido', 'error');
+        } else {
+            console.log('Configuraciones de sonido guardadas en Firebase');
+            showNotification('Configuración de sonido guardada exitosamente', 'success');
+        }
+    });
 }
 
 function testEliminationSound() {
@@ -2370,6 +2447,7 @@ function switchTab(tab) {
 }
 
 function loadSoundSettings() {
+    // Cargar configuraciones desde las variables globales
     document.getElementById('elimination-message-input').value = soundSettings.eliminationMessage;
     document.getElementById('victory-message-input').value = soundSettings.victoryMessage;
     document.getElementById('wrong-answer-input').value = soundSettings.wrongAnswerMessage;
@@ -2753,6 +2831,15 @@ function initSpeechSynthesis() {
 
 // ====== INICIO ======
 document.addEventListener('DOMContentLoaded', function() {
+    // Cargar datos desde localStorage como respaldo
+    const savedQuestions = localStorage.getItem('quizQuestions');
+    const savedSoundSettings = localStorage.getItem('soundSettings');
+    const savedPlayerPhotos = localStorage.getItem('playerPhotos');
+    
+    if (savedQuestions) questions = JSON.parse(savedQuestions);
+    if (savedSoundSettings) soundSettings = JSON.parse(savedSoundSettings);
+    if (savedPlayerPhotos) playerPhotos = JSON.parse(savedPlayerPhotos);
+    
     renderPlayers();
     showPlayerTurn();
     
@@ -2762,8 +2849,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configurar Firebase
     setupFirebaseListeners();
     
-    // Cargar configuración de sonido
-    loadSoundSettings();
+    // Intentar cargar desde Firebase
+    if (isOnline) {
+        loadFromFirebase();
+    } else {
+        // Si no estamos online, marcar que la carga inicial está completa
+        initialLoadComplete = true;
+    }
 });
 </script>
 </body>

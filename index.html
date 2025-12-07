@@ -1168,11 +1168,8 @@
         </div>
     </div>
 
-    <!-- Elemento de audio para música de fondo -->
-    <audio id="background-music" loop>
-        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-        Tu navegador no soporta el elemento de audio.
-    </audio>
+    <!-- Elemento de video para música de fondo -->
+    <div id="youtube-player" style="display: none;"></div>
 
     <!-- Control de música de fondo -->
     <div class="music-control">
@@ -1444,11 +1441,11 @@
                     <h3><i class="fas fa-music"></i> Configuración de Música de Fondo</h3>
                     
                     <div style="margin-bottom: 20px;">
-                        <label for="music-url-input">URL de música de fondo:</label>
-                        <input type="url" id="music-url-input" class="form-control" placeholder="https://ejemplo.com/musica.mp3" 
-                               value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">
+                        <label for="youtube-link-input">Link de YouTube para música de fondo:</label>
+                        <input type="url" id="youtube-link-input" class="form-control" placeholder="https://www.youtube.com/watch?v=..." 
+                               value="https://www.youtube.com/watch?v=IlwESW5wIUA">
                         <small style="color: #666; margin-top: 5px; display: block;">
-                            Pega el enlace directo a un archivo de audio (MP3, WAV, etc.)
+                            Pega el enlace de cualquier video de YouTube para usarlo como música de fondo
                         </small>
                     </div>
                     
@@ -1513,10 +1510,12 @@
         let initialLoadComplete = false;
         let musicEnabled = true;
         let gameStarted = false;
+        let youtubePlayer = null;
+        let youtubeApiLoaded = false;
 
         // Configuración de sonido
         let soundSettings = {
-            selectedVoice: "Microsoft David Desktop - English (United States)",
+            selectedVoice: null, // Se establecerá dinámicamente
             eliminationMessage: "Estas eliminado mi wawita",
             victoryMessage: "Felicidades Ganastes mi wawita",
             wrongAnswerMessage: "Respuesta incorrecta. La respuesta correcta era {respuesta}"
@@ -1524,7 +1523,7 @@
 
         // Configuración de música
         let musicSettings = {
-            musicUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+            youtubeLink: "https://www.youtube.com/watch?v=IlwESW5wIUA",
             volume: 20,
             autoplay: true
         };
@@ -1809,6 +1808,82 @@
             });
         }
 
+        // ===== FUNCIONES DE YOUTUBE =====
+        function loadYouTubeAPI() {
+            // Cargar la API de YouTube IFrame Player
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            
+            // Marcar que la API está cargada
+            youtubeApiLoaded = true;
+        }
+
+        function onYouTubeIframeAPIReady() {
+            youtubePlayer = new YT.Player('youtube-player', {
+                height: '0',
+                width: '0',
+                videoId: getYouTubeId(musicSettings.youtubeLink),
+                playerVars: {
+                    'autoplay': 0,
+                    'controls': 0,
+                    'loop': 1,
+                    'showinfo': 0,
+                    'modestbranding': 1,
+                    'rel': 0,
+                    'playlist': getYouTubeId(musicSettings.youtubeLink) // Para el bucle
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
+                }
+            });
+        }
+
+        function onPlayerError(event) {
+            console.error('Error en el reproductor de YouTube:', event.data);
+            showNotification('Error al cargar el video de YouTube. Verifica el enlace e intenta de nuevo.', 'error');
+        }
+
+        function getYouTubeId(url) {
+            const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[7].length == 11) ? match[7] : false;
+        }
+
+        function onPlayerReady(event) {
+            event.target.setVolume(musicSettings.volume);
+            if (musicEnabled && gameStarted) {
+                event.target.playVideo();
+            }
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.ENDED) {
+                event.target.playVideo();
+            }
+        }
+
+        function updateBackgroundMusic() {
+            if (!youtubePlayer || !youtubeApiLoaded) return;
+            
+            const videoId = getYouTubeId(musicSettings.youtubeLink);
+            if (videoId) {
+                youtubePlayer.loadVideoById({
+                    'videoId': videoId,
+                    'startSeconds': 0,
+                    'suggestedQuality': 'small'
+                });
+                youtubePlayer.setVolume(musicSettings.volume);
+                
+                if (musicEnabled && gameStarted) {
+                    youtubePlayer.playVideo();
+                }
+            }
+        }
+
         // ===== FUNCIONES DE BIENVENIDA E INSTRUCCIONES =====
         function showInstructions() {
             const modal = document.getElementById('instructions-modal');
@@ -1828,7 +1903,7 @@
             utterance.text = text;
             utterance.lang = 'es-ES';
             utterance.rate = 0.9;
-            utterance.pitch = 1.2; // Voz más aguda para el gatito
+            utterance.pitch = 1.0;
             utterance.volume = 1.0;
             
             let voices = window.speechSynthesis.getVoices();
@@ -1837,18 +1912,8 @@
                 voices = window.speechSynthesis.getVoices();
             }
             
-            // Buscar voz femenina para el gatito
-            let selectedVoice = voices.find(voice => 
-                voice.lang.includes('es') && 
-                (voice.name.toLowerCase().includes('female') || 
-                 voice.name.toLowerCase().includes('mujer') ||
-                 voice.name.toLowerCase().includes('girl'))
-            );
-            
-            // Si no encuentra voz femenina, usa cualquier voz en español
-            if (!selectedVoice) {
-                selectedVoice = voices.find(voice => voice.lang.includes('es'));
-            }
+            // Buscar voz masculina para el gatito
+            let selectedVoice = findBestMaleVoice(voices);
             
             if (selectedVoice) {
                 utterance.voice = selectedVoice;
@@ -1879,10 +1944,15 @@
             gameStarted = true;
             renderPlayers();
             
+            // Inicializar YouTube API si no está cargada
+            if (!youtubeApiLoaded) {
+                loadYouTubeAPI();
+            }
+            
             // Iniciar música si está configurada
-            if (musicSettings.autoplay && musicEnabled) {
+            if (musicSettings.autoplay && musicEnabled && youtubePlayer) {
                 setTimeout(() => {
-                    initBackgroundMusic();
+                    youtubePlayer.playVideo();
                 }, 1000);
             }
             
@@ -1894,56 +1964,49 @@
 
         // ===== FUNCIONES DE MÚSICA DE FONDO =====
         function initBackgroundMusic() {
-            const backgroundMusic = document.getElementById('background-music');
-            
-            // Actualizar fuente de música según configuración
-            updateBackgroundMusic();
-            
-            backgroundMusic.volume = musicSettings.volume / 100;
+            // Cargar la API de YouTube si aún no está cargada
+            if (!youtubeApiLoaded) {
+                loadYouTubeAPI();
+            } else if (youtubePlayer) {
+                updateBackgroundMusic();
+                youtubePlayer.setVolume(musicSettings.volume);
+            }
             
             // Intentar reproducir música cuando el usuario interactúa con la página
             document.addEventListener('click', function initMusicOnInteraction() {
-                if (musicEnabled && gameStarted) {
-                    backgroundMusic.play().catch(e => {
-                        console.log('Error al reproducir música de fondo:', e);
-                    });
+                if (musicEnabled && gameStarted && youtubePlayer) {
+                    youtubePlayer.playVideo();
                 }
                 document.removeEventListener('click', initMusicOnInteraction);
             }, { once: true });
         }
 
-        function updateBackgroundMusic() {
-            const backgroundMusic = document.getElementById('background-music');
-            backgroundMusic.src = musicSettings.musicUrl;
-        }
-
         function toggleMusic() {
-            const backgroundMusic = document.getElementById('background-music');
-            const musicToggle = document.getElementById('music-toggle');
+            if (!youtubePlayer) return;
             
             musicEnabled = !musicEnabled;
+            const musicToggle = document.getElementById('music-toggle');
             
             if (musicEnabled && gameStarted) {
-                backgroundMusic.play().catch(e => {
-                    console.log('Error al reproducir música de fondo:', e);
-                });
+                youtubePlayer.playVideo();
                 musicToggle.innerHTML = '<i class="fas fa-music"></i>';
             } else {
-                backgroundMusic.pause();
+                youtubePlayer.pauseVideo();
                 musicToggle.innerHTML = '<i class="fas fa-volume-mute"></i>';
             }
         }
 
         function changeVolume(value) {
-            const backgroundMusic = document.getElementById('background-music');
+            if (!youtubePlayer) return;
+            
             const volumeLabel = document.getElementById('volume-label');
             
-            backgroundMusic.volume = value / 100;
+            youtubePlayer.setVolume(value / 100);
             volumeLabel.textContent = value + '%';
         }
 
         function saveMusicSettings() {
-            musicSettings.musicUrl = document.getElementById('music-url-input').value;
+            musicSettings.youtubeLink = document.getElementById('youtube-link-input').value;
             musicSettings.volume = parseInt(document.getElementById('music-volume-input').value);
             musicSettings.autoplay = document.getElementById('autoplay-music').checked;
             
@@ -1966,27 +2029,37 @@
             // Actualizar música si está reproduciendo
             if (musicEnabled) {
                 updateBackgroundMusic();
-                const backgroundMusic = document.getElementById('background-music');
-                backgroundMusic.volume = musicSettings.volume / 100;
             }
         }
 
         function testMusicSettings() {
-            const backgroundMusic = document.getElementById('background-music');
-            updateBackgroundMusic();
-            backgroundMusic.volume = musicSettings.volume / 100;
+            if (!youtubePlayer || !youtubeApiLoaded) {
+                showNotification('YouTube API no está disponible. Por favor, espera a que se cargue.', 'warning');
+                return;
+            }
+            
+            const videoId = getYouTubeId(document.getElementById('youtube-link-input').value);
+            if (!videoId) {
+                showNotification('Enlace de YouTube inválido', 'error');
+                return;
+            }
+            
+            // Cargar el video de prueba
+            youtubePlayer.loadVideoById({
+                'videoId': videoId,
+                'startSeconds': 0,
+                'suggestedQuality': 'small'
+            });
+            
+            youtubePlayer.setVolume(parseInt(document.getElementById('music-volume-input').value));
             
             if (musicEnabled) {
-                backgroundMusic.play().catch(e => {
-                    console.log('Error al reproducir música de prueba:', e);
-                    showNotification('Error al reproducir música de prueba', 'error');
-                });
+                youtubePlayer.playVideo();
                 showNotification('Reproduciendo música de prueba', 'success');
                 
                 // Detener después de 5 segundos
                 setTimeout(() => {
-                    backgroundMusic.pause();
-                    backgroundMusic.currentTime = 0;
+                    youtubePlayer.pauseVideo();
                 }, 5000);
             } else {
                 showNotification('La música está desactivada', 'warning');
@@ -2008,7 +2081,7 @@
             }
             
             // Actualizar UI
-            document.getElementById('music-url-input').value = musicSettings.musicUrl;
+            document.getElementById('youtube-link-input').value = musicSettings.youtubeLink;
             document.getElementById('music-volume-input').value = musicSettings.volume;
             document.getElementById('music-volume-label').textContent = musicSettings.volume + '%';
             document.getElementById('autoplay-music').checked = musicSettings.autoplay;
@@ -2049,6 +2122,53 @@
             }, 2000);
         }
 
+        function findBestMaleVoice(voices) {
+            // Lista de voces masculinas preferidas en orden de prioridad
+            const preferredMaleVoices = [
+                "Microsoft Sabina Online Natural - Spanish (Spain)",
+                "Microsoft Pablo Online Natural - Spanish (Mexico)",
+                "Microsoft Jorge Online Natural - Spanish (Mexico)",
+                "Microsoft Raul Online Natural - Spanish (Mexico)",
+                "Microsoft Xavier Online Natural - Spanish (Spain)",
+                "Google español de Estados Unidos",
+                "Google español de México",
+                "Google español de España",
+                "Microsoft David - English (United States)",
+                "Microsoft Mark - English (United States)",
+                "Microsoft Guy - English (United Kingdom)"
+            ];
+            
+            // Buscar voces preferidas
+            for (const preferredVoice of preferredMaleVoices) {
+                const voice = voices.find(v => v.name.includes(preferredVoice));
+                if (voice) return voice;
+            }
+            
+            // Si no se encuentra una voz preferida, buscar cualquier voz masculina en español
+            const spanishMaleVoices = voices.filter(voice => {
+                const isSpanish = voice.lang.includes('es');
+                const isMale = voice.name.toLowerCase().includes('male') || 
+                               voice.name.toLowerCase().includes('man') || 
+                               voice.name.toLowerCase().includes('pablo') || 
+                               voice.name.toLowerCase().includes('jorge') || 
+                               voice.name.toLowerCase().includes('raul') || 
+                               voice.name.toLowerCase().includes('xavier') || 
+                               voice.name.toLowerCase().includes('david') || 
+                               voice.name.toLowerCase().includes('mark') || 
+                               voice.name.toLowerCase().includes('guy');
+                return isSpanish && isMale;
+            });
+            
+            if (spanishMaleVoices.length > 0) return spanishMaleVoices[0];
+            
+            // Si no se encuentra una voz masculina en español, buscar cualquier voz en español
+            const spanishVoices = voices.filter(voice => voice.lang.includes('es'));
+            if (spanishVoices.length > 0) return spanishVoices[0];
+            
+            // Si no se encuentra ninguna voz en español, usar la primera disponible
+            return voices.length > 0 ? voices[0] : null;
+        }
+
         function speak(text) {
             if (!soundEnabled) return;
             
@@ -2058,8 +2178,8 @@
             const utterance = new SpeechSynthesisUtterance();
             utterance.text = text;
             utterance.lang = 'es-ES';
-            utterance.rate = 0.85; // Velocidad más lenta para narrador
-            utterance.pitch = 0.9; // Tono más grave para voz masculina
+            utterance.rate = 0.85;
+            utterance.pitch = 1.0;
             utterance.volume = 1.0;
             
             let voices = window.speechSynthesis.getVoices();
@@ -2068,46 +2188,23 @@
                 voices = window.speechSynthesis.getVoices();
             }
             
-            // Prioridad 1: Voz masculina específica (Microsoft David)
-            let selectedVoice = voices.find(voice => 
-                voice.name === "Microsoft David Desktop - English (United States)"
-            );
+            // Usar la función para encontrar la mejor voz masculina
+            let selectedVoice = null;
             
-            // Prioridad 2: Otras voces masculinas en español
-            if (!selectedVoice) {
-                selectedVoice = voices.find(voice => 
-                    voice.lang.includes('es') && 
-                    (voice.name.toLowerCase().includes('male') || 
-                     voice.name.toLowerCase().includes('hombre') ||
-                     voice.name.toLowerCase().includes('david') ||
-                     voice.name.toLowerCase().includes('jorge') ||
-                     voice.name.toLowerCase().includes('carlos') ||
-                     voice.name.toLowerCase().includes('miguel'))
-                );
-            }
-            
-            // Prioridad 3: Cualquier voz masculina
-            if (!selectedVoice) {
-                selectedVoice = voices.find(voice => 
-                    voice.name.toLowerCase().includes('male') ||
-                    voice.name.toLowerCase().includes('hombre')
-                );
-            }
-            
-            // Prioridad 4: Cualquier voz en español
-            if (!selectedVoice) {
-                selectedVoice = voices.find(voice => voice.lang.includes('es'));
-            }
-            
-            // Prioridad 5: Voz guardada en configuración
-            if (!selectedVoice && soundSettings.selectedVoice) {
+            // Si hay una voz guardada en la configuración, intentar usarla primero
+            if (soundSettings.selectedVoice) {
                 selectedVoice = voices.find(voice => voice.name === soundSettings.selectedVoice);
             }
             
-            // Prioridad 6: Primera voz disponible
-            if (!selectedVoice && voices.length > 0) {
-                selectedVoice = voices[0];
-                soundSettings.selectedVoice = selectedVoice.name;
+            // Si no se encuentra la voz guardada o no hay voz guardada, buscar la mejor voz masculina
+            if (!selectedVoice) {
+                selectedVoice = findBestMaleVoice(voices);
+                
+                // Guardar la voz encontrada como la predeterminada
+                if (selectedVoice) {
+                    soundSettings.selectedVoice = selectedVoice.name;
+                    saveSoundSettings();
+                }
             }
             
             if (selectedVoice) {
@@ -2153,28 +2250,7 @@
             defaultOption.textContent = 'Seleccionar voz...';
             voiceSelect.appendChild(defaultOption);
             
-            // Agrupar voces masculinas primero
-            const maleVoices = voices.filter(voice => 
-                voice.lang.includes('es-ES') || 
-                voice.lang.includes('es-MX') || 
-                voice.lang.includes('es-AR') || 
-                voice.lang.includes('es-CO') || 
-                voice.lang.includes('es-CL') || 
-                voice.lang.includes('es-PE') || 
-                voice.lang.includes('es-VE') || 
-                voice.lang.includes('es') ||
-                voice.name.toLowerCase().includes('spanish') ||
-                voice.name.toLowerCase().includes('español') ||
-                voice.name.toLowerCase().includes('espana')
-            ).filter(voice => 
-                voice.name.toLowerCase().includes('male') ||
-                voice.name.toLowerCase().includes('hombre') ||
-                voice.name.toLowerCase().includes('david') ||
-                voice.name.toLowerCase().includes('jorge') ||
-                voice.name.toLowerCase().includes('carlos') ||
-                voice.name.toLowerCase().includes('miguel')
-            );
-            
+            // Agrupar voces en español primero
             const spanishVoices = voices.filter(voice => 
                 voice.lang.includes('es-ES') || 
                 voice.lang.includes('es-MX') || 
@@ -2187,63 +2263,84 @@
                 voice.name.toLowerCase().includes('spanish') ||
                 voice.name.toLowerCase().includes('español') ||
                 voice.name.toLowerCase().includes('espana')
-            ).filter(voice => !maleVoices.includes(voice));
+            );
             
             const englishVoices = voices.filter(voice => voice.lang.includes('en'));
             const otherVoices = voices.filter(voice => 
                 !voice.lang.includes('es') && !voice.lang.includes('en')
             );
             
-            if (maleVoices.length > 0) {
-                const maleGroup = document.createElement('optgroup');
-                maleGroup.label = '👨 Voces Masculinas en Español';
+            if (spanishVoices.length > 0) {
+                const spanishGroup = document.createElement('optgroup');
+                spanishGroup.label = '🇪🇸 Voces en Español';
                 
-                maleVoices.forEach(voice => {
+                // Priorizar voces masculinas
+                const spanishMaleVoices = [];
+                const spanishFemaleVoices = [];
+                
+                spanishVoices.forEach(voice => {
+                    const isMale = voice.name.toLowerCase().includes('male') || 
+                                   voice.name.toLowerCase().includes('man') || 
+                                   voice.name.toLowerCase().includes('pablo') || 
+                                   voice.name.toLowerCase().includes('jorge') || 
+                                   voice.name.toLowerCase().includes('raul') || 
+                                   voice.name.toLowerCase().includes('xavier') || 
+                                   voice.name.toLowerCase().includes('david') || 
+                                   voice.name.toLowerCase().includes('mark') || 
+                                   voice.name.toLowerCase().includes('guy');
+                    
+                    if (isMale) {
+                        spanishMaleVoices.push(voice);
+                    } else {
+                        spanishFemaleVoices.push(voice);
+                    }
+                });
+                
+                // Añadir voces masculinas primero
+                spanishMaleVoices.forEach(voice => {
                     const option = document.createElement('option');
                     option.value = voice.name;
                     
-                    let voiceText = `${voice.name} (${voice.lang})`;
+                    let voiceText = `${voice.name} (${voice.lang}) 👨`;
                     
-                    if (voice.name === "Microsoft David Desktop - English (United States)") {
+                    if (voice.name.toLowerCase().includes('google')) {
+                        voiceText += ' 🌟';
+                    }
+                    if (voice.name.toLowerCase().includes('microsoft')) {
+                        voiceText += ' 🪟';
+                    }
+                    if (voice.name.toLowerCase().includes('amazon')) {
+                        voiceText += ' 🔊';
+                    }
+                    if (voice.name.toLowerCase().includes('azure')) {
+                        voiceText += ' ☁️';
+                    }
+                    if (voice.name.toLowerCase().includes('comentarista') || voice.name.toLowerCase().includes('announcer')) {
+                        voiceText += ' 🎤';
+                    }
+                    if (voice.name.toLowerCase().includes('natural')) {
+                        voiceText += ' 🗣️';
+                    }
+                    if (voice.name.toLowerCase().includes('premium') || voice.name.toLowerCase().includes('hd')) {
+                        voiceText += ' 💎';
+                    }
+                    
+                    // Marcar como predeterminada si coincide con la voz guardada
+                    if (soundSettings.selectedVoice && voice.name === soundSettings.selectedVoice) {
                         voiceText += ' ⭐ (Predeterminada)';
                         option.selected = true;
                     }
                     
-                    if (voice.name.toLowerCase().includes('google')) {
-                        voiceText += ' 🌟';
-                    }
-                    if (voice.name.toLowerCase().includes('microsoft')) {
-                        voiceText += ' 🪟';
-                    }
-                    if (voice.name.toLowerCase().includes('amazon')) {
-                        voiceText += ' 🔊';
-                    }
-                    if (voice.name.toLowerCase().includes('azure')) {
-                        voiceText += ' ☁️';
-                    }
-                    if (voice.name.toLowerCase().includes('natural')) {
-                        voiceText += ' 🗣️';
-                    }
-                    if (voice.name.toLowerCase().includes('premium') || voice.name.toLowerCase().includes('hd')) {
-                        voiceText += ' 💎';
-                    }
-                    
                     option.textContent = voiceText;
-                    maleGroup.appendChild(option);
+                    spanishGroup.appendChild(option);
                 });
                 
-                voiceSelect.appendChild(maleGroup);
-            }
-            
-            if (spanishVoices.length > 0) {
-                const spanishGroup = document.createElement('optgroup');
-                spanishGroup.label = '🇪🇸 Otras Voces en Español';
-                
-                spanishVoices.forEach(voice => {
+                // Añadir voces femeninas después
+                spanishFemaleVoices.forEach(voice => {
                     const option = document.createElement('option');
                     option.value = voice.name;
                     
-                    let voiceText = `${voice.name} (${voice.lang})`;
+                    let voiceText = `${voice.name} (${voice.lang}) 👩`;
                     
                     if (voice.name.toLowerCase().includes('google')) {
                         voiceText += ' 🌟';
@@ -2257,14 +2354,17 @@
                     if (voice.name.toLowerCase().includes('azure')) {
                         voiceText += ' ☁️';
                     }
-                    if (voice.name.toLowerCase().includes('female') || voice.name.toLowerCase().includes('mujer')) {
-                        voiceText += ' 👩';
-                    }
                     if (voice.name.toLowerCase().includes('natural')) {
                         voiceText += ' 🗣️';
                     }
                     if (voice.name.toLowerCase().includes('premium') || voice.name.toLowerCase().includes('hd')) {
                         voiceText += ' 💎';
+                    }
+                    
+                    // Marcar como predeterminada si coincide con la voz guardada
+                    if (soundSettings.selectedVoice && voice.name === soundSettings.selectedVoice) {
+                        voiceText += ' ⭐ (Predeterminada)';
+                        option.selected = true;
                     }
                     
                     option.textContent = voiceText;
@@ -2305,19 +2405,12 @@
                 voiceSelect.appendChild(otherGroup);
             }
             
-            if (!voiceSelect.value && maleVoices.length > 0) {
-                const davidVoice = maleVoices.find(voice => 
-                    voice.name === "Microsoft David Desktop - English (United States)"
-                );
-                
-                if (davidVoice) {
-                    voiceSelect.value = davidVoice.name;
-                    soundSettings.selectedVoice = davidVoice.name;
-                    saveSoundSettings();
-                } else {
-                    const firstMale = maleVoices[0];
-                    voiceSelect.value = firstMale.name;
-                    soundSettings.selectedVoice = firstMale.name;
+            // Si no hay una voz seleccionada, seleccionar automáticamente la mejor voz masculina
+            if (!voiceSelect.value && spanishMaleVoices.length > 0) {
+                const bestVoice = findBestMaleVoice(spanishMaleVoices);
+                if (bestVoice) {
+                    voiceSelect.value = bestVoice.name;
+                    soundSettings.selectedVoice = bestVoice.name;
                     saveSoundSettings();
                 }
             }
@@ -3129,9 +3222,7 @@
             currentPlayerIndex = 0;
             document.getElementById("winner-container").style.display = "none";
             renderPlayers();
-            if (gameStarted) {
-                showPlayerTurn();
-            }
+            showPlayerTurn();
             
             syncToFirebase();
             
@@ -3192,6 +3283,9 @@
             
             initSpeechSynthesis();
             setupFirebaseListeners();
+            
+            // Inicializar YouTube API
+            loadYouTubeAPI();
             
             if (isOnline) {
                 loadFromFirebase();

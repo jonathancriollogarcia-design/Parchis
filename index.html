@@ -181,6 +181,21 @@
             0%, 100% { transform: scaleY(1); }
             50% { transform: scaleY(0.8); }
         }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        @keyframes pointsFloat {
+            0% { transform: translateY(-50%); opacity: 1; }
+            100% { transform: translateY(-150%); opacity: 0; }
+        }
 
         .fade-in {
             animation: fadeIn 0.5s ease-out;
@@ -587,6 +602,7 @@
             text-align: center;
             border-bottom: 1px solid #eee;
             font-weight: 700 !important;
+            position: relative; /* Necesario para la animación de puntos */
         }
 
         .players-table th {
@@ -606,6 +622,19 @@
 
         .life-indicator.lost {
             color: var(--accent-color);
+        }
+        
+        .points-animation {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.5rem;
+            font-weight: 900 !important;
+            color: var(--secondary-color);
+            animation: pointsFloat 1.5s ease-out forwards;
+            pointer-events: none;
+            z-index: 100;
         }
 
         /* ===== MODALES ===== */
@@ -1267,6 +1296,20 @@
                     </thead>
                     <tbody id="players-body"></tbody>
                 </table>
+                <!-- Tabla de Clasificación -->
+                <div id="leaderboard-container" style="margin-top: 20px;">
+                    <h3><i class="fas fa-trophy"></i> Tabla de Clasificación</h3>
+                    <table class="players-table">
+                        <thead>
+                            <tr>
+                                <th>Posición</th>
+                                <th>Jugador</th>
+                                <th>Puntos</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -1355,6 +1398,16 @@
                 </button>
                 
                 <form class="question-form" onsubmit="saveQuestion(event)">
+                    <select id="question-category" class="form-control" required>
+                        <option value="">Selecciona una categoría</option>
+                        <option value="geography">Geografía</option>
+                        <option value="history">Historia</option>
+                        <option value="science">Ciencia</option>
+                        <option value="sports">Deportes</option>
+                        <option value="technology">Tecnología</option>
+                        <option value="culture">Cultura</option>
+                        <option value="general">General</option>
+                    </select>
                     <input type="text" id="new-question" class="form-control" placeholder="Escribe la pregunta..." required>
                     
                     <div class="options-input">
@@ -1533,26 +1586,26 @@
 
         // Banco de preguntas
         let questions = [
-            { q:"¿Cuál es la capital de Francia?", a:["Madrid","París","Roma","Berlín"], correct:1 },
-            { q:"¿Quién escribió 'Cien años de soledad'?", a:["Gabriel García Márquez","Mario Vargas Llosa","Pablo Neruda","Julio Cortázar"], correct:0 },
-            { q:"¿Cuál es el planeta más grande del sistema solar?", a:["Saturno","Júpiter","Marte","Neptuno"], correct:1 },
-            { q:"¿En qué año llegó el hombre a la Luna?", a:["1965","1969","1972","1975"], correct:1 },
-            { q:"¿Cuál es el elemento químico con símbolo 'O'?", a:["Oro","Oxígeno","Osmio","Ozono"], correct:1 },
-            { q:"¿Qué idioma se habla en Brasil?", a:["Español","Portugués","Inglés","Francés"], correct:1 },
-            { q:"¿Cuál es el océano más grande?", a:["Atlántico","Pacífico","Índico","Ártico"], correct:1 },
-            { q:"¿Qué país tiene forma de bota?", a:["Grecia","Italia","España","Portugal"], correct:1 },
-            { q:"¿Quién pintó la Mona Lisa?", a:["Picasso","Leonardo da Vinci","Van Gogh","Rembrandt"], correct:1 },
-            { q:"¿Cuál es el animal más rápido del mundo?", a:["León","Tigre","Guepardo","Águila"], correct:2 },
-            { q:"¿Qué gas respiramos principalmente?", a:["Nitrógeno","Oxígeno","Dióxido de carbono","Hidrógeno"], correct:1 },
-            { q:"¿Cuál es la moneda de Japón?", a:["Yuan","Yen","Dólar","Won"], correct:1 },
-            { q:"¿Qué continente tiene más países?", a:["África","Asia","Europa","América"], correct:0 },
-            { q:"¿Quién descubrió América?", a:["Cristóbal Colón","Leif Erikson","Magallanes","Américo Vespucio"], correct:0 },
-            { q:"¿Cuál es la velocidad de la luz?", a:["300.000 km/s","150.000 km/s","1.000 km/s","30.000 km/s"], correct:0 },
-            { q:"¿Qué instrumento mide la temperatura?", a:["Barómetro","Termómetro","Higrómetro","Sismógrafo"], correct:1 },
-            { q:"¿Qué año comenzó la Segunda Guerra Mundial?", a:["1939","1941","1935","1945"], correct:0 },
-            { q:"¿Quién es el autor de 'Hamlet'?", a:["Shakespeare","Dante","Goethe","Tolstói"], correct:0 },
-            { q:"¿Cuál es el río más largo del mundo?", a:["Amazonas","Nilo","Misisipi","Yangtsé"], correct:0 },
-            { q:"¿Qué país ganó la Copa del Mundo 2018?", a:["Brasil","Alemania","Francia","Argentina"], correct:2 }
+            { q:"¿Cuál es la capital de Francia?", a:["Madrid","París","Roma","Berlín"], correct:1, category: "geography" },
+            { q:"¿Quién escribió 'Cien años de soledad'?", a:["Gabriel García Márquez","Mario Vargas Llosa","Pablo Neruda","Julio Cortázar"], correct:0, category: "culture" },
+            { q:"¿Cuál es el planeta más grande del sistema solar?", a:["Saturno","Júpiter","Marte","Neptuno"], correct:1, category: "science" },
+            { q:"¿En qué año llegó el hombre a la Luna?", a:["1965","1969","1972","1975"], correct:1, category: "history" },
+            { q:"¿Cuál es el elemento químico con símbolo 'O'?", a:["Oro","Oxígeno","Osmio","Ozono"], correct:1, category: "science" },
+            { q:"¿Qué idioma se habla en Brasil?", a:["Español","Portugués","Inglés","Francés"], correct:1, category: "geography" },
+            { q:"¿Cuál es el océano más grande?", a:["Atlántico","Pacífico","Índico","Ártico"], correct:1, category: "geography" },
+            { q:"¿Qué país tiene forma de bota?", a:["Grecia","Italia","España","Portugal"], correct:1, category: "geography" },
+            { q:"¿Quién pintó la Mona Lisa?", a:["Picasso","Leonardo da Vinci","Van Gogh","Rembrandt"], correct:1, category: "culture" },
+            { q:"¿Cuál es el animal más rápido del mundo?", a:["León","Tigre","Guepardo","Águila"], correct:2, category: "science" },
+            { q:"¿Qué gas respiramos principalmente?", a:["Nitrógeno","Oxígeno","Dióxido de carbono","Hidrógeno"], correct:1, category: "science" },
+            { q:"¿Cuál es la moneda de Japón?", a:["Yuan","Yen","Dólar","Won"], correct:1, category: "geography" },
+            { q:"¿Qué continente tiene más países?", a:["África","Asia","Europa","América"], correct:0, category: "geography" },
+            { q:"¿Quién descubrió América?", a:["Cristóbal Colón","Leif Erikson","Magallanes","Américo Vespucio"], correct:0, category: "history" },
+            { q:"¿Cuál es la velocidad de la luz?", a:["300.000 km/s","150.000 km/s","1.000 km/s","30.000 km/s"], correct:0, category: "science" },
+            { q:"¿Qué instrumento mide la temperatura?", a:["Barómetro","Termómetro","Higrómetro","Sismógrafo"], correct:1, category: "science" },
+            { q:"¿Qué año comenzó la Segunda Guerra Mundial?", a:["1939","1941","1935","1945"], correct:0, category: "history" },
+            { q:"¿Quién es el autor de 'Hamlet'?", a:["Shakespeare","Dante","Goethe","Tolstói"], correct:0, category: "culture" },
+            { q:"¿Cuál es el río más largo del mundo?", a:["Amazonas","Nilo","Misisipi","Yangtsé"], correct:0, category: "geography" },
+            { q:"¿Qué país ganó la Copa del Mundo 2018?", a:["Brasil","Alemania","Francia","Argentina"], correct:2, category: "sports" }
         ];
 
         // Banco de datos para IA
@@ -1630,6 +1683,39 @@
         };
 
         // ===== FUNCIONES DE FIREBASE =====
+        let syncQueue = [];
+        let isProcessingQueue = false;
+
+        function addToSyncQueue(operation, data) {
+            syncQueue.push({ operation, data, timestamp: Date.now() });
+            
+            if (!isProcessingQueue && isOnline) {
+                processSyncQueue();
+            }
+        }
+
+        function processSyncQueue() {
+            if (syncQueue.length === 0) {
+                isProcessingQueue = false;
+                return;
+            }
+            
+            isProcessingQueue = true;
+            const { operation, data } = syncQueue.shift();
+            
+            database.ref(`gameData/${operation}`).set(data)
+                .then(() => {
+                    console.log(`Sincronización completada para: ${operation}`);
+                    setTimeout(processSyncQueue, 100); // Pequeña pausa entre operaciones
+                })
+                .catch(error => {
+                    console.error(`Error en sincronización para: ${operation}`, error);
+                    // Volver a agregar a la cola si falla
+                    syncQueue.unshift({ operation, data, timestamp: Date.now() });
+                    setTimeout(processSyncQueue, 2000); // Reintentar después de 2 segundos
+                });
+        }
+
         function updateConnectionStatus(connected) {
             isOnline = connected;
             const indicator = document.getElementById('connection-indicator');
@@ -1641,6 +1727,10 @@
                 
                 if (!initialLoadComplete) {
                     loadFromFirebase();
+                }
+                // Procesar la cola si hay elementos pendientes
+                if (syncQueue.length > 0 && !isProcessingQueue) {
+                    processSyncQueue();
                 }
             } else {
                 indicator.className = 'connection-indicator disconnected';
@@ -1666,6 +1756,7 @@
                     localStorage.setItem('musicSettings', JSON.stringify(musicSettings));
                     
                     renderPlayers();
+                    updateLeaderboard();
                     loadSoundSettings();
                     loadMusicSettings();
                     
@@ -1679,40 +1770,55 @@
         }
 
         function syncToFirebase() {
-            if (!isOnline || syncInProgress) return;
+            if (!isOnline) {
+                // Agregar a la cola si estamos offline
+                addToSyncQueue('players', players);
+                addToSyncQueue('currentPlayerIndex', currentPlayerIndex);
+                addToSyncQueue('questions', questions);
+                addToSyncQueue('soundSettings', soundSettings);
+                addToSyncQueue('playerPhotos', playerPhotos);
+                addToSyncQueue('musicSettings', musicSettings);
+                return;
+            }
             
-            syncInProgress = true;
-            const indicator = document.getElementById('connection-indicator');
-            indicator.className = 'connection-indicator syncing';
-            document.getElementById('connection-text').textContent = 'Sincronizando...';
-            
-            const gameData = {
-                players: players,
-                currentPlayerIndex: currentPlayerIndex,
-                questions: questions,
-                soundSettings: soundSettings,
-                playerPhotos: playerPhotos,
-                musicSettings: musicSettings,
-                timestamp: Date.now()
-            };
-            
-            database.ref('gameData').update(gameData, (error) => {
-                syncInProgress = false;
-                if (error) {
-                    console.error('Error al sincronizar:', error);
-                    updateConnectionStatus(false);
-                } else {
-                    updateConnectionStatus(true);
-                    setTimeout(() => {
-                        if (isOnline) {
-                            indicator.className = 'connection-indicator connected';
-                            document.getElementById('connection-text').textContent = 'Conectado - Sincronización en tiempo real activa';
-                        }
-                    }, 1000);
-                    
-                    console.log('Datos sincronizados con Firebase');
-                }
-            });
+            // Si estamos online, sincronizar directamente
+            if (!syncInProgress) {
+                syncInProgress = true;
+                const indicator = document.getElementById('connection-indicator');
+                indicator.className = 'connection-indicator syncing';
+                document.getElementById('connection-text').textContent = 'Sincronizando...';
+                
+                const gameData = {
+                    players: players,
+                    currentPlayerIndex: currentPlayerIndex,
+                    questions: questions,
+                    soundSettings: soundSettings,
+                    playerPhotos: playerPhotos,
+                    musicSettings: musicSettings,
+                    timestamp: Date.now()
+                };
+                
+                database.ref('gameData').update(gameData, (error) => {
+                    syncInProgress = false;
+                    if (error) {
+                        console.error('Error al sincronizar:', error);
+                        updateConnectionStatus(false);
+                        // Agregar a la cola si falla
+                        addToSyncQueue('players', players);
+                        addToSyncQueue('currentPlayerIndex', currentPlayerIndex);
+                    } else {
+                        updateConnectionStatus(true);
+                        setTimeout(() => {
+                            if (isOnline) {
+                                indicator.className = 'connection-indicator connected';
+                                document.getElementById('connection-text').textContent = 'Conectado - Sincronización en tiempo real activa';
+                            }
+                        }, 1000);
+                        
+                        console.log('Datos sincronizados con Firebase');
+                    }
+                });
+            }
         }
 
         function setupFirebaseListeners() {
@@ -1890,7 +1996,7 @@
             modal.classList.add('active');
             
             // Hablar instrucciones
-            const instructions = "Cada jugador tendrá un turno para responder correctamente y cada jugador tendrá 3 vidas. La persona que quede al final y haya eliminado a las otras personas será la ganadora o ganador. ¡Mucha suerte jugadores!";
+            const instructions = "Cada jugador tendrá un turno para responder y contará con 3 vidas. Quien conserve vidas después de eliminar a los demás será el ganador. ¡Buena suerte!";
             speakInstructions(instructions);
         }
 
@@ -1943,6 +2049,7 @@
             // Iniciar el juego
             gameStarted = true;
             renderPlayers();
+            updateLeaderboard();
             
             // Inicializar YouTube API si no está cargada
             if (!youtubeApiLoaded) {
@@ -2476,6 +2583,85 @@
             speak(message);
         }
 
+        // ===== FUNCIONES DE EFECTOS DE SONIDO Y VIBRACIÓN =====
+        function playSoundEffect(type) {
+            if (!soundEnabled) return;
+            
+            const audio = new Audio();
+            
+            switch(type) {
+                case 'correct':
+                    audio.src = 'https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3';
+                    break;
+                case 'incorrect':
+                    audio.src = 'https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3';
+                    break;
+                case 'elimination':
+                    audio.src = 'https://assets.mixkit.co/sfx/preview/mixkit-game-over-trombone-1974.mp3';
+                    break;
+                case 'winner':
+                    audio.src = 'https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3';
+                    break;
+                case 'countdown':
+                    audio.src = 'https://assets.mixkit.co/sfx/preview/mixkit-clock-tick-1049.mp3';
+                    break;
+                default:
+                    return; // No reproducir nada si el tipo no es reconocido
+            }
+            
+            audio.volume = 0.5; // Volumen moderado para efectos
+            audio.play().catch(error => {
+                console.error('Error al reproducir efecto de sonido:', error);
+            });
+        }
+
+        function vibrateDevice(pattern) {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(pattern);
+            }
+        }
+
+        // ===== FUNCIONES DE NOTIFICACIONES =====
+        function showNotification(message, type = 'info', duration = 3000) {
+            // Eliminar notificaciones existentes
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(notification => notification.remove());
+            
+            // Crear nueva notificación
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+            
+            // Estilos para la notificación
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 25px;
+                background: ${type === 'success' ? 'var(--secondary-color)' : 
+                             type === 'error' ? 'var(--accent-color)' : 
+                             type === 'warning' ? 'var(--warning-color)' : 'var(--primary-color)'};
+                color: white;
+                border-radius: var(--border-radius);
+                font-family: 'Poppins', sans-serif;
+                font-weight: 700 !important;
+                box-shadow: var(--shadow);
+                z-index: 9999;
+                animation: slideInRight 0.3s ease-out;
+                max-width: 300px;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Eliminar notificación después del tiempo especificado
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease-out';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, duration);
+        }
+
         // ===== FUNCIONES DE JUEGO =====
         function renderPlayers(){
             const tbody = document.getElementById("players-body");
@@ -2494,6 +2680,53 @@
             });
         }
 
+        function updatePlayerScore(playerIndex, points) {
+            players[playerIndex].correct += points;
+            
+            // Actualizar la tabla de clasificación
+            updateLeaderboard();
+            
+            // Mostrar animación de puntos
+            showPointsAnimation(playerIndex, points);
+        }
+
+        function updateLeaderboard() {
+            // Ordenar jugadores por puntos
+            const sortedPlayers = [...players].sort((a, b) => b.correct - a.correct);
+            
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = '';
+            
+            sortedPlayers.forEach((player, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${player.name}</td>
+                    <td>${player.correct}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function showPointsAnimation(playerIndex, points) {
+            const playerRow = document.querySelectorAll('#players-body tr')[playerIndex];
+            if (!playerRow) return;
+            
+            const pointsElement = document.createElement('div');
+            pointsElement.className = 'points-animation';
+            pointsElement.textContent = points > 0 ? `+${points}` : `${points}`;
+            pointsElement.style.color = points > 0 ? 'var(--secondary-color)' : 'var(--accent-color)';
+            
+            // Asegurar que la fila del jugador tenga posición relativa
+            playerRow.style.position = 'relative';
+            playerRow.appendChild(pointsElement);
+            
+            // Eliminar el elemento después de la animación
+            setTimeout(() => {
+                pointsElement.remove();
+            }, 1500);
+        }
+
         function addPlayer(){
             const input = document.getElementById("new-player");
             const name = input.value.trim();
@@ -2501,6 +2734,7 @@
                 players.push({name:name, lives:3, correct:0});
                 input.value="";
                 renderPlayers();
+                updateLeaderboard();
                 if(players.length === 1 && gameStarted) {
                     showPlayerTurn();
                 }
@@ -2512,6 +2746,7 @@
             players.splice(i,1);
             if(currentPlayerIndex >= players.length) currentPlayerIndex=0;
             renderPlayers();
+            updateLeaderboard();
             if(players.length === 0) {
                 document.getElementById("current-player").textContent = "";
                 document.getElementById("question-text").textContent = "";
@@ -2567,6 +2802,7 @@
                     setTimeout(() => {
                         countdownNumber.style.animation = 'pulse 1s ease-in-out';
                     }, 10);
+                    playSoundEffect('countdown');
                 } else {
                     clearInterval(countdownInterval);
                     countdownContainer.style.display = "none";
@@ -2623,11 +2859,13 @@
             const options = document.querySelectorAll(".option-btn");
             
             if(selected===correct){
-                player.correct++;
+                updatePlayerScore(currentPlayerIndex, 1);
                 resultEl.textContent=`¡Correcto! +1 punto`;
                 resultEl.className = "result-container correct";
                 resultEl.style.display = "block";
                 options[selected].classList.add("correct");
+                playSoundEffect('correct');
+                vibrateDevice([100]);
             } else {
                 player.lives--;
                 resultEl.textContent=`Incorrecto. Te quedan ${player.lives} vidas`;
@@ -2637,6 +2875,8 @@
                 options[correct].classList.add("correct");
                 
                 speakWrongAnswer(currentQuestion.a[correct]);
+                playSoundEffect('incorrect');
+                vibrateDevice([100, 50, 100]);
                 
                 if(player.lives===0){
                     showEliminationAnimation(player);
@@ -2673,10 +2913,8 @@
             container.style.display = "flex";
             
             speakElimination(player.name);
-            
-            if (navigator.vibrate) {
-                navigator.vibrate([200, 100, 200]);
-            }
+            playSoundEffect('elimination');
+            vibrateDevice([200, 100, 200]);
         }
 
         function createParticles() {
@@ -2749,10 +2987,8 @@
             container.style.display = "flex";
             
             speakVictory(player.name);
-            
-            if (navigator.vibrate) {
-                navigator.vibrate([100, 50, 100, 50, 100, 50, 200]);
-            }
+            playSoundEffect('winner');
+            vibrateDevice([100, 50, 100, 50, 100, 50, 200]);
         }
 
         function resetGame() {
@@ -2763,6 +2999,7 @@
             currentPlayerIndex = 0;
             document.getElementById("winner-container").style.display = "none";
             renderPlayers();
+            updateLeaderboard();
             showPlayerTurn();
             
             syncToFirebase();
@@ -2886,6 +3123,7 @@
                     
                     const correctIndex = allOptions.indexOf(randomQuestion.correct);
                     
+                    document.getElementById('question-category').value = randomCategory;
                     document.getElementById('new-question').value = randomQuestion.question;
                     document.getElementById('option1').value = allOptions[0];
                     document.getElementById('option2').value = allOptions[1];
@@ -2913,37 +3151,10 @@
             }, 1500);
         }
 
-        function showNotification(message, type) {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 25px;
-                background: ${type === 'success' ? 'var(--secondary-color)' : type === 'warning' ? 'var(--warning-color)' : 'var(--accent-color)'};
-                color: white;
-                border-radius: var(--border-radius);
-                font-family: 'Poppins', sans-serif;
-                font-weight: 700 !important;
-                box-shadow: var(--shadow);
-                z-index: 9999;
-                animation: fadeIn 0.3s ease-out;
-            `;
-            notification.textContent = message;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'fadeOut 0.3s ease-out';
-                setTimeout(() => {
-                    notification.remove();
-                }, 300);
-            }, 3000);
-        }
-
         function saveQuestion(event) {
             event.preventDefault();
             
+            const category = document.getElementById("question-category").value;
             const question = document.getElementById("new-question").value;
             const option1 = document.getElementById("option1").value;
             const option2 = document.getElementById("option2").value;
@@ -2954,7 +3165,8 @@
             const newQuestion = {
                 q: question,
                 a: [option1, option2, option3, option4],
-                correct: correct
+                correct: correct,
+                category: category
             };
             
             questions.push(newQuestion);
@@ -2975,6 +3187,7 @@
                 showNotification("Pregunta guardada localmente. Se sincronizará cuando haya conexión.", 'warning');
             }
             
+            document.getElementById("question-category").value = "";
             document.getElementById("new-question").value = "";
             document.getElementById("option1").value = "";
             document.getElementById("option2").value = "";
@@ -3000,7 +3213,7 @@
                 });
                 
                 questionItem.innerHTML = `
-                    <h4>${index + 1}. ${q.q}</h4>
+                    <h4>${index + 1}. ${q.q} <span style="font-size: 0.8rem; color: #666;">(${q.category})</span></h4>
                     ${optionsHTML}
                     <button class="btn btn-danger delete-btn" onclick="deleteQuestion(${index})">
                         <i class="fas fa-trash"></i> Eliminar
@@ -3222,6 +3435,7 @@
             currentPlayerIndex = 0;
             document.getElementById("winner-container").style.display = "none";
             renderPlayers();
+            updateLeaderboard();
             showPlayerTurn();
             
             syncToFirebase();
@@ -3257,15 +3471,36 @@
             }
         }
 
-        // Agregar animación fadeOut
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeOut {
-                from { opacity: 1; }
-                to { opacity: 0; }
+        // ===== SOPORTE PARA DISPOSITIVOS MÓVILES =====
+        function addTouchSupport() {
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            document.addEventListener('touchstart', function(event) {
+                touchStartX = event.changedTouches[0].screenX;
+            }, false);
+            
+            document.addEventListener('touchend', function(event) {
+                touchEndX = event.changedTouches[0].screenX;
+                handleSwipe();
+            }, false);
+            
+            function handleSwipe() {
+                // Detectar deslizamiento horizontal
+                if (touchEndX < touchStartX - 50) {
+                    // Deslizamiento hacia la izquierda
+                    // Podría usarse para avanzar a la siguiente pregunta
+                    if (questionAnswered && !document.getElementById('winner-container').style.display) {
+                        nextTurn();
+                    }
+                }
+                
+                if (touchEndX > touchStartX + 50) {
+                    // Deslizamiento hacia la derecha
+                    // Podría usarse para mostrar información adicional
+                }
             }
-        `;
-        document.head.appendChild(style);
+        }
 
         // ===== INICIO =====
         document.addEventListener('DOMContentLoaded', function() {
@@ -3280,9 +3515,11 @@
             if (savedMusicSettings) musicSettings = JSON.parse(savedMusicSettings);
             
             renderPlayers();
+            updateLeaderboard();
             
             initSpeechSynthesis();
             setupFirebaseListeners();
+            addTouchSupport();
             
             // Inicializar YouTube API
             loadYouTubeAPI();

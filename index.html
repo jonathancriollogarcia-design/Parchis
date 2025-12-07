@@ -1170,7 +1170,7 @@
 
     <!-- Elemento de audio para música de fondo -->
     <audio id="background-music" loop>
-        <source src="https://www.youtube.com/watch?v=IlwESW5wIUA" type="audio/mpeg">
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
         Tu navegador no soporta el elemento de audio.
     </audio>
 
@@ -1444,11 +1444,11 @@
                     <h3><i class="fas fa-music"></i> Configuración de Música de Fondo</h3>
                     
                     <div style="margin-bottom: 20px;">
-                        <label for="youtube-link-input">Link de YouTube para música de fondo:</label>
-                        <input type="url" id="youtube-link-input" class="form-control" placeholder="https://www.youtube.com/watch?v=..." 
-                               value="https://www.youtube.com/watch?v=IlwESW5wIUA">
+                        <label for="music-url-input">URL de música de fondo:</label>
+                        <input type="url" id="music-url-input" class="form-control" placeholder="https://ejemplo.com/musica.mp3" 
+                               value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">
                         <small style="color: #666; margin-top: 5px; display: block;">
-                            Pega el enlace de cualquier video de YouTube para usarlo como música de fondo
+                            Pega el enlace directo a un archivo de audio (MP3, WAV, etc.)
                         </small>
                     </div>
                     
@@ -1516,7 +1516,7 @@
 
         // Configuración de sonido
         let soundSettings = {
-            selectedVoice: "Microsoft Sebastian Online Natural - Spanish (Venezuela)",
+            selectedVoice: "Microsoft David Desktop - English (United States)",
             eliminationMessage: "Estas eliminado mi wawita",
             victoryMessage: "Felicidades Ganastes mi wawita",
             wrongAnswerMessage: "Respuesta incorrecta. La respuesta correcta era {respuesta}"
@@ -1524,7 +1524,7 @@
 
         // Configuración de música
         let musicSettings = {
-            youtubeLink: "https://www.youtube.com/watch?v=IlwESW5wIUA",
+            musicUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
             volume: 20,
             autoplay: true
         };
@@ -1914,20 +1914,7 @@
 
         function updateBackgroundMusic() {
             const backgroundMusic = document.getElementById('background-music');
-            
-            // Extraer ID del video de YouTube
-            let videoId = '';
-            if (musicSettings.youtubeLink.includes('youtube.com/watch?v=')) {
-                videoId = musicSettings.youtubeLink.split('v=')[1]?.split('&')[0];
-            } else if (musicSettings.youtubeLink.includes('youtu.be/')) {
-                videoId = musicSettings.youtubeLink.split('youtu.be/')[1]?.split('?')[0];
-            }
-            
-            if (videoId) {
-                // Usar un servicio de conversión de YouTube a audio (simulado aquí)
-                // En un entorno real, necesitarías un backend o servicio para esto
-                backgroundMusic.src = `https://www.youtube.com/watch?v=${videoId}`;
-            }
+            backgroundMusic.src = musicSettings.musicUrl;
         }
 
         function toggleMusic() {
@@ -1956,7 +1943,7 @@
         }
 
         function saveMusicSettings() {
-            musicSettings.youtubeLink = document.getElementById('youtube-link-input').value;
+            musicSettings.musicUrl = document.getElementById('music-url-input').value;
             musicSettings.volume = parseInt(document.getElementById('music-volume-input').value);
             musicSettings.autoplay = document.getElementById('autoplay-music').checked;
             
@@ -2021,7 +2008,7 @@
             }
             
             // Actualizar UI
-            document.getElementById('youtube-link-input').value = musicSettings.youtubeLink;
+            document.getElementById('music-url-input').value = musicSettings.musicUrl;
             document.getElementById('music-volume-input').value = musicSettings.volume;
             document.getElementById('music-volume-label').textContent = musicSettings.volume + '%';
             document.getElementById('autoplay-music').checked = musicSettings.autoplay;
@@ -2071,8 +2058,8 @@
             const utterance = new SpeechSynthesisUtterance();
             utterance.text = text;
             utterance.lang = 'es-ES';
-            utterance.rate = 0.9;
-            utterance.pitch = 1.0;
+            utterance.rate = 0.85; // Velocidad más lenta para narrador
+            utterance.pitch = 0.9; // Tono más grave para voz masculina
             utterance.volume = 1.0;
             
             let voices = window.speechSynthesis.getVoices();
@@ -2081,20 +2068,46 @@
                 voices = window.speechSynthesis.getVoices();
             }
             
+            // Prioridad 1: Voz masculina específica (Microsoft David)
             let selectedVoice = voices.find(voice => 
-                voice.name === "Microsoft Sebastian Online Natural - Spanish (Venezuela)"
+                voice.name === "Microsoft David Desktop - English (United States)"
             );
             
+            // Prioridad 2: Otras voces masculinas en español
+            if (!selectedVoice) {
+                selectedVoice = voices.find(voice => 
+                    voice.lang.includes('es') && 
+                    (voice.name.toLowerCase().includes('male') || 
+                     voice.name.toLowerCase().includes('hombre') ||
+                     voice.name.toLowerCase().includes('david') ||
+                     voice.name.toLowerCase().includes('jorge') ||
+                     voice.name.toLowerCase().includes('carlos') ||
+                     voice.name.toLowerCase().includes('miguel'))
+                );
+            }
+            
+            // Prioridad 3: Cualquier voz masculina
+            if (!selectedVoice) {
+                selectedVoice = voices.find(voice => 
+                    voice.name.toLowerCase().includes('male') ||
+                    voice.name.toLowerCase().includes('hombre')
+                );
+            }
+            
+            // Prioridad 4: Cualquier voz en español
+            if (!selectedVoice) {
+                selectedVoice = voices.find(voice => voice.lang.includes('es'));
+            }
+            
+            // Prioridad 5: Voz guardada en configuración
             if (!selectedVoice && soundSettings.selectedVoice) {
                 selectedVoice = voices.find(voice => voice.name === soundSettings.selectedVoice);
             }
             
-            if (!selectedVoice) {
-                selectedVoice = voices.find(voice => voice.lang.includes('es'));
-                if (selectedVoice) {
-                    soundSettings.selectedVoice = selectedVoice.name;
-                    saveSoundSettings();
-                }
+            // Prioridad 6: Primera voz disponible
+            if (!selectedVoice && voices.length > 0) {
+                selectedVoice = voices[0];
+                soundSettings.selectedVoice = selectedVoice.name;
             }
             
             if (selectedVoice) {
@@ -2140,6 +2153,28 @@
             defaultOption.textContent = 'Seleccionar voz...';
             voiceSelect.appendChild(defaultOption);
             
+            // Agrupar voces masculinas primero
+            const maleVoices = voices.filter(voice => 
+                voice.lang.includes('es-ES') || 
+                voice.lang.includes('es-MX') || 
+                voice.lang.includes('es-AR') || 
+                voice.lang.includes('es-CO') || 
+                voice.lang.includes('es-CL') || 
+                voice.lang.includes('es-PE') || 
+                voice.lang.includes('es-VE') || 
+                voice.lang.includes('es') ||
+                voice.name.toLowerCase().includes('spanish') ||
+                voice.name.toLowerCase().includes('español') ||
+                voice.name.toLowerCase().includes('espana')
+            ).filter(voice => 
+                voice.name.toLowerCase().includes('male') ||
+                voice.name.toLowerCase().includes('hombre') ||
+                voice.name.toLowerCase().includes('david') ||
+                voice.name.toLowerCase().includes('jorge') ||
+                voice.name.toLowerCase().includes('carlos') ||
+                voice.name.toLowerCase().includes('miguel')
+            );
+            
             const spanishVoices = voices.filter(voice => 
                 voice.lang.includes('es-ES') || 
                 voice.lang.includes('es-MX') || 
@@ -2152,24 +2187,24 @@
                 voice.name.toLowerCase().includes('spanish') ||
                 voice.name.toLowerCase().includes('español') ||
                 voice.name.toLowerCase().includes('espana')
-            );
+            ).filter(voice => !maleVoices.includes(voice));
             
             const englishVoices = voices.filter(voice => voice.lang.includes('en'));
             const otherVoices = voices.filter(voice => 
                 !voice.lang.includes('es') && !voice.lang.includes('en')
             );
             
-            if (spanishVoices.length > 0) {
-                const spanishGroup = document.createElement('optgroup');
-                spanishGroup.label = '🇪🇸 Voces en Español';
+            if (maleVoices.length > 0) {
+                const maleGroup = document.createElement('optgroup');
+                maleGroup.label = '👨 Voces Masculinas en Español';
                 
-                spanishVoices.forEach(voice => {
+                maleVoices.forEach(voice => {
                     const option = document.createElement('option');
                     option.value = voice.name;
                     
                     let voiceText = `${voice.name} (${voice.lang})`;
                     
-                    if (voice.name === "Microsoft Sebastian Online Natural - Spanish (Venezuela)") {
+                    if (voice.name === "Microsoft David Desktop - English (United States)") {
                         voiceText += ' ⭐ (Predeterminada)';
                         option.selected = true;
                     }
@@ -2186,14 +2221,44 @@
                     if (voice.name.toLowerCase().includes('azure')) {
                         voiceText += ' ☁️';
                     }
+                    if (voice.name.toLowerCase().includes('natural')) {
+                        voiceText += ' 🗣️';
+                    }
+                    if (voice.name.toLowerCase().includes('premium') || voice.name.toLowerCase().includes('hd')) {
+                        voiceText += ' 💎';
+                    }
+                    
+                    option.textContent = voiceText;
+                    maleGroup.appendChild(option);
+                });
+                
+                voiceSelect.appendChild(maleGroup);
+            }
+            
+            if (spanishVoices.length > 0) {
+                const spanishGroup = document.createElement('optgroup');
+                spanishGroup.label = '🇪🇸 Otras Voces en Español';
+                
+                spanishVoices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.name;
+                    
+                    let voiceText = `${voice.name} (${voice.lang})`;
+                    
+                    if (voice.name.toLowerCase().includes('google')) {
+                        voiceText += ' 🌟';
+                    }
+                    if (voice.name.toLowerCase().includes('microsoft')) {
+                        voiceText += ' 🪟';
+                    }
+                    if (voice.name.toLowerCase().includes('amazon')) {
+                        voiceText += ' 🔊';
+                    }
+                    if (voice.name.toLowerCase().includes('azure')) {
+                        voiceText += ' ☁️';
+                    }
                     if (voice.name.toLowerCase().includes('female') || voice.name.toLowerCase().includes('mujer')) {
                         voiceText += ' 👩';
-                    }
-                    if (voice.name.toLowerCase().includes('male') || voice.name.toLowerCase().includes('hombre')) {
-                        voiceText += ' 👨';
-                    }
-                    if (voice.name.toLowerCase().includes('comentarista') || voice.name.toLowerCase().includes('announcer')) {
-                        voiceText += ' 🎤';
                     }
                     if (voice.name.toLowerCase().includes('natural')) {
                         voiceText += ' 🗣️';
@@ -2240,19 +2305,19 @@
                 voiceSelect.appendChild(otherGroup);
             }
             
-            if (!voiceSelect.value && spanishVoices.length > 0) {
-                const sebastianVoice = spanishVoices.find(voice => 
-                    voice.name === "Microsoft Sebastian Online Natural - Spanish (Venezuela)"
+            if (!voiceSelect.value && maleVoices.length > 0) {
+                const davidVoice = maleVoices.find(voice => 
+                    voice.name === "Microsoft David Desktop - English (United States)"
                 );
                 
-                if (sebastianVoice) {
-                    voiceSelect.value = sebastianVoice.name;
-                    soundSettings.selectedVoice = sebastianVoice.name;
+                if (davidVoice) {
+                    voiceSelect.value = davidVoice.name;
+                    soundSettings.selectedVoice = davidVoice.name;
                     saveSoundSettings();
                 } else {
-                    const firstSpanish = spanishVoices[0];
-                    voiceSelect.value = firstSpanish.name;
-                    soundSettings.selectedVoice = firstSpanish.name;
+                    const firstMale = maleVoices[0];
+                    voiceSelect.value = firstMale.name;
+                    soundSettings.selectedVoice = firstMale.name;
                     saveSoundSettings();
                 }
             }
@@ -2289,10 +2354,14 @@
                 database.ref('gameData/soundSettings').set(soundSettings, (error) => {
                     if (error) {
                         console.error('Error al guardar configuraciones de sonido:', error);
+                        showNotification('Error al guardar configuraciones de sonido', 'error');
                     } else {
                         console.log('Configuraciones de sonido guardadas en Firebase');
+                        showNotification('Configuraciones de sonido guardadas exitosamente', 'success');
                     }
                 });
+            } else {
+                showNotification('Configuraciones guardadas localmente', 'success');
             }
         }
 
